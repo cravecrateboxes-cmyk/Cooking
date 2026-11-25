@@ -245,13 +245,19 @@ async function playMaps(limitSec) {
   step(`play by touch at ${SPEED}x`);
   await state((speed) => {
     app.speed = speed;
+    window.__speed = speed;
     window.__sim = 0;
+    window.__budget = 0;
     window.__wrap = () => {
       const w = app.world;
       if (w.__timed) return;
       w.__timed = true;
       const u = w.update.bind(w);
       w.update = (dt) => {
+        // lockstep: the game only advances by the time the test granted after its last touch, so slow
+        // software rendering cannot make the chef overshoot between two looks
+        if (window.__budget <= 0) return;
+        window.__budget -= dt;
         window.__sim += dt;
         u(dt);
       };
@@ -264,6 +270,7 @@ async function playMaps(limitSec) {
   let lastUnlock = { n: -1, map: '', at: 0 };
   let firstDone = 0;
   let boardOpens = 0;
+  let nextTrace = 0;
   let nextUpgradeCheck = 0;
   let nextShot = 0;
   for (;;) {
@@ -276,6 +283,7 @@ async function playMaps(limitSec) {
       // a map change runs a short wipe; let it finish
       if (held) await touch('touchEnd', 0, 0);
       held = false;
+      await state(() => (window.__budget = 1));
       await sleep(200);
       continue;
     }
@@ -320,6 +328,11 @@ async function playMaps(limitSec) {
       if (held) await touch('touchEnd', 0, 0);
       break;
     }
+    if (process.env.TRACE && Date.now() > nextTrace) {
+      nextTrace = Date.now() + 4000;
+      const t = await state(() => ({ at: [+app.world.player.pos.x.toFixed(2), +app.world.player.pos.z.toFixed(2)], goal: window.__goal, coins: app.save.coins, carry: app.world.player.stack.items.length, input: app.input.enabled, dir: [+app.input.dir.x.toFixed(2), +app.input.dir.y.toFixed(2)] }));
+      console.warn(`trace ${Math.round(s.sim)}s ${JSON.stringify(t)} stick ${JSON.stringify(s.stick?.map((v) => +v.toFixed(2)))}`);
+    }
     if (Date.now() > nextShot) {
       nextShot = Date.now() + 60_000;
       await shot(`play-${s.map}-${s.done}`);
@@ -352,19 +365,26 @@ async function playMaps(limitSec) {
     if (!s.stick) {
       if (held) await touch('touchEnd', ax, ay);
       held = false;
-      await sleep(16);
-      continue;
+    } else {
+      const R = 46;
+      const x = ax + s.stick[0] * R;
+      const y = ay + s.stick[1] * R;
+      if (!held) {
+        await touch('touchStart', ax, ay);
+        held = true;
+      }
+      await touch('touchMove', x, y);
     }
-    const R = 46;
-    const x = ax + s.stick[0] * R;
-    const y = ay + s.stick[1] * R;
-    if (!held) {
-      await touch('touchStart', ax, ay);
-      held = true;
-    }
-    await touch('touchMove', x, y);
-    await sleep(16);
+    // let the game run for the granted slice, then look again
+    await state(() => {
+      window.__budget = window.__step || 0.2;
+      return new Promise((done) => {
+        const wait = () => (window.__budget <= 0 || app.mode !== 'play' ? done() : requestAnimationFrame(wait));
+        wait();
+      });
+    });
   }
+  await state(() => (window.__budget = Infinity));
 }
 
 async function tapUpgrade(id, lv) {
@@ -473,7 +493,12 @@ function installBrain() {
       while (route.length > 1 && Math.hypot(route[0].x - p.pos.x, route[0].z - p.pos.z) < 0.35) route.shift();
       const wp = route.length ? route[0] : V(goal[0], goal[1]);
       const d = Math.hypot(wp.x - p.pos.x, wp.z - p.pos.z);
-      if (d < 0.18) return null;
+      // the test can only steer a few times a second; slow the game near the goal so the chef does not orbit it
+      window.__step = d < 1.2 ? 0.05 : 0.2; // game seconds to run before the next look
+      if (d < (route.length > 1 ? 0.18 : 0.3)) {
+        window.__step = 0.4; // standing still on a pad: let it work
+        return null;
+      }
       // invert the game's own stick mapping (cameraRig.screenToWorld): a thumb push of (x, y) walks along right*x - up*y
       const rig = app.rig;
       const wx = wp.x - p.pos.x;
@@ -491,7 +516,7 @@ function installBrain() {
         sideSign = -sideSign;
       }
       if (now < sideUntil) [dx, dy] = [-dy * sideSign, dx * sideSign];
-      const m = Math.min(1, 0.35 + d / 0.8);
+      const m = Math.min(1, 0.3 + d / 1.2);
       return [dx * m, dy * m];
     };
   });

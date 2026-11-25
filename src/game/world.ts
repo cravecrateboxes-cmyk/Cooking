@@ -158,7 +158,13 @@ export class World {
     this.interact = new Interact(this);
 
     // starting kit
-    for (const st of this.stations) if (this.def.startDishes.includes(st.dish)) st.unlock(false);
+    for (const st of this.stations) {
+      if (!this.def.startDishes.includes(st.dish)) continue;
+      st.unlock(false);
+      // the starter stations are solid too, like the ones bought later
+      const b = st.footprint();
+      this.staticObstacles.push({ minX: b.min.x + 0.04, minZ: b.min.z + 0.04, maxX: b.max.x - 0.04, maxZ: b.max.z - 0.04 });
+    }
     this.unlocks.restore();
     this.applyUpgrades();
     this.rebuildNav();
