@@ -1,0 +1,28 @@
+{
+  "name": "order-up",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "artifact": "npm run build && node scripts/artifact.mjs",
+    "webapp": "npm run build && node scripts/webapp.mjs",
+    "test:touch": "node tests/touch-play.mjs"
+  },
+  "dependencies": {
+    "@fontsource/lilita-one": "^5.3.0",
+    "@fontsource/nunito": "^5.3.0",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/three": "0.187.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

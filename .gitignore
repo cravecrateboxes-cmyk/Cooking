@@ -1,0 +1,7 @@
+node_modules/
+dist/
+artifact/
+webapp/
+test-results/
+__pycache__/
+*.blend1
