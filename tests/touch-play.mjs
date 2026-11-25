@@ -494,9 +494,9 @@ function installBrain() {
       const wp = route.length ? route[0] : V(goal[0], goal[1]);
       const d = Math.hypot(wp.x - p.pos.x, wp.z - p.pos.z);
       // the test can only steer a few times a second; slow the game near the goal so the chef does not orbit it
-      window.__step = d < 1.2 ? 0.05 : 0.2; // game seconds to run before the next look
+      window.__step = d < 1.2 ? 0.05 : d < 3 ? 0.2 : 0.4; // game seconds to run before the next look
       if (d < (route.length > 1 ? 0.18 : 0.3)) {
-        window.__step = 0.4; // standing still on a pad: let it work
+        window.__step = 1; // standing still on a pad: let it work
         return null;
       }
       // invert the game's own stick mapping (cameraRig.screenToWorld): a thumb push of (x, y) walks along right*x - up*y
