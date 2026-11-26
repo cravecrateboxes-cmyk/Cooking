@@ -2,7 +2,7 @@
 // one shows a real moment of play: the title, a restaurant mid-build and finished, upgrades, the beach and
 // the gem shop.
 //
-//   CHROME_PATH=/path/to/chromium node scripts/store-shots.mjs <webapp dir> <out dir>
+//   CHROME_PATH=/path/to/chromium [ONLY=6-gem-shop] node scripts/store-shots.mjs <webapp dir> <out dir>
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,7 +48,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--in-process-gpu'],
 });
 let failed = false;
-for (const s of SHOTS) {
+for (const s of SHOTS.filter((x) => !process.env.ONLY || x.name === process.env.ONLY)) {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   await ctx.addInitScript((seed) => localStorage.setItem('order-up-save-v1', JSON.stringify(seed)), s.seed);
   const page = await ctx.newPage();
@@ -74,7 +74,7 @@ for (const s of SHOTS) {
     await page.tap(s.tap);
     await page.waitForTimeout(1500);
   }
-  await page.screenshot({ path: path.join(OUT, `${s.name}.png`) });
+  await page.screenshot({ path: path.join(OUT, `${s.name}.png`), timeout: 120_000 }); // software GL at 3x is slow
   console.warn(`shot ${s.name}`);
   await ctx.close();
 }
