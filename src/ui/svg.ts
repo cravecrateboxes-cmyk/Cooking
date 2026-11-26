@@ -52,6 +52,13 @@ export const ICONS = {
       `<path d="M24 37c-9-6.5-14-12-15.5-17" fill="none" stroke="#c92557" stroke-width="3" opacity="0.55"/>` +
       `<ellipse cx="14" cy="16" rx="3.6" ry="2.4" transform="rotate(-35 14 16)" fill="#fff" opacity="0.85"/>`,
   ),
+  /** clipboard with two ticked lines: daily quests */
+  quest: wrap(
+    `<rect x="9" y="8" width="30" height="35" rx="5" fill="#fff4dc" stroke="${O}" stroke-width="3"/>` +
+      `<rect x="17" y="4" width="14" height="8" rx="3" fill="#ff8a2b" stroke="${O}" stroke-width="3"/>` +
+      `<path d="M15 21l3 3 5-6M15 32l3 3 5-6" fill="none" stroke="#2fb85a" stroke-width="3.5"/>` +
+      `<path d="M27 22h7M27 33h7" stroke="${O}" stroke-width="3.5"/>`,
+  ),
   back: wrap(`<path d="M40 24H14M24 12 12 24l12 12" fill="none" stroke="${O}" stroke-width="10"/><path d="M40 24H14M24 12 12 24l12 12" fill="none" stroke="#fff" stroke-width="4.5"/>`),
 };
 

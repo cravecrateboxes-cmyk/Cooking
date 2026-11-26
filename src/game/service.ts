@@ -213,12 +213,16 @@ export class Service {
     c.bubble.hide();
     this.queue[0] = null;
     w.progress.served++;
+    w.quest('serve', 1);
     this.payInto(c, value, (o) => w.cash.nextWorld(o), (v, obj) => w.cash.add(v, obj));
     c.char.play('cheer', 0.12);
     this.cheer(c, value, tip);
     c.char.root.getWorldPosition(_b);
     _b.y += 1.7;
-    if (c.vip) w.earnGems(TUNE.gemsPerVip, _b);
+    if (c.vip) {
+      w.earnGems(TUNE.gemsPerVip, _b);
+      w.quest('vip', 1);
+    }
     w.tweens.wait(0.7, () => {
       const exit = w.def.exit.map(v3);
       c.goTo(exit[0], () => c.follow([...exit.slice(1), v3(w.def.despawn)], () => (c.state = 'gone')));
@@ -260,6 +264,7 @@ export class Service {
     w.tweens.wait(0.16, () => w.ui.float(head.clone().setY(2.15), '', 'heart'));
     if (tip) w.tweens.wait(0.34, () => w.ui.float(head.clone().setY(2.5), 'Fast!', 'tip'));
     const n = this.combo.hit(w.time);
+    w.quest('combo', n);
     if (n < 2) {
       w.ui.impact('light');
       return;
@@ -332,12 +337,17 @@ export class Service {
     s.food.length = 0;
     const { value, tip } = this.billFor(c);
     w.progress.served++;
+    w.quest('serve', 1);
+    w.quest('seated', 1);
     t.addPlate();
     this.payInto(c, value, (o) => t.cash.nextWorld(o), (v, obj) => t.cash.add(v, obj));
     this.cheer(c, value, tip);
     c.char.root.getWorldPosition(_b);
     _b.y += 1.4;
-    if (c.vip) w.earnGems(TUNE.gemsPerVip, _b);
+    if (c.vip) {
+      w.earnGems(TUNE.gemsPerVip, _b);
+      w.quest('vip', 1);
+    }
     c.state = 'leaving';
     s.guest = null;
     w.tweens.wait(0.35, () => {

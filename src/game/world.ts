@@ -13,6 +13,7 @@ import { ghostOf, tickGhosts } from './ghost';
 import { MAPS, type MapDef } from './maps';
 import { NavGrid, type Rect } from './nav';
 import { Pass } from './pass';
+import { bump, questsFor, type Quest, type QuestKind } from './quests';
 import { Pad } from './pad';
 import { Player } from './player';
 import { Rng } from './rng';
@@ -37,6 +38,8 @@ export interface WorldUI {
   openUpgrades(): void;
   /** walk onto a travel pad: go to that map */
   nextMap(map: MapId): void;
+  /** one of today's quests was just finished */
+  questDone(q: Quest): void;
 }
 
 /** One playable map with everything on it. Systems live in their own modules and share this state. */
@@ -106,7 +109,7 @@ export class World {
     this.cash = new CashPile(c.x, this.def.counter.builtIn ? 1.02 : 0.7, c.z);
     this.scene.add(this.cash.root);
     const ps = this.def.counter.pass;
-    this.pass = new Pass(ps.x, this.def.counter.builtIn ? 1.02 : 0.7, ps.z, ps.rot, TUNE.passCap);
+    this.pass = new Pass(ps.x, this.def.counter.builtIn ? 1.02 : 0.7, ps.z, ps.rot, TUNE.passCap[this.progress.upgrades.counter]);
     this.scene.add(this.pass.root);
     this.servePad = new Pad(this.def.counter.serve.x, this.def.counter.serve.z, 1.15, '#ffe1f0', '#ff4b8b');
     this.scene.add(this.servePad.mesh);
@@ -206,6 +209,7 @@ export class World {
     const u = this.progress.upgrades;
     this.player.speed = TUNE.player.speed[u.speed];
     this.player.capacity = TUNE.player.capacity[u.capacity];
+    this.pass.setCap(TUNE.passCap[u.counter]);
   }
 
   get cookTime(): number {
@@ -228,8 +232,15 @@ export class World {
     return out;
   }
 
+  /** Counts toward today's quests; each quest that this finishes is announced once. */
+  quest(kind: QuestKind, n: number): void {
+    const q = (this.save.quests = questsFor(new Date().toDateString(), this.save.quests));
+    for (const it of bump(q, kind, n)) this.ui.questDone(it);
+  }
+
   earn(coins: number, from: THREE.Vector3): void {
     this.save.coins += coins;
+    this.quest('earn', coins);
     this.ui.money(this.save.coins, this.save.gems, from, 'coin');
     writeSave(this.save);
   }

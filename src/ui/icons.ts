@@ -19,6 +19,39 @@ const COMPOSITES: Record<string, () => THREE.Object3D> = {
     }
     return g;
   },
+  up_counter: () => {
+    // the counter tray holding a square of short dish piles
+    const g = new THREE.Group();
+    const tray = spawn('tray');
+    tray.scale.set(1.25, 1, 1.05);
+    g.add(tray);
+    const piles: [number, number, Dish[]][] = [
+      [-0.16, -0.16, ['burger', 'burger']],
+      [0.16, -0.16, ['fries', 'soda']],
+      [-0.16, 0.16, ['pizza', 'pizza', 'pizza']],
+      [0.16, 0.16, ['burger']],
+    ];
+    for (const [x, z, dishes] of piles) {
+      let y = 0.06;
+      for (const d of dishes) {
+        const o = spawn(DISHES[d].model);
+        o.position.set(x, y, z);
+        y += DISHES[d].stackH;
+        g.add(o);
+      }
+    }
+    return g;
+  },
+  quest_combo: () => {
+    // three plates in a rising row: guests paid one after another
+    const g = new THREE.Group();
+    (['fries', 'burger', 'soda'] as Dish[]).forEach((d, i) => {
+      const o = spawn(DISHES[d].model);
+      o.position.set((i - 1) * 0.3, i * 0.09, 0);
+      g.add(o);
+    });
+    return g;
+  },
   up_speed: () => {
     const g = new THREE.Group();
     const o = spawn('cos_shoe_sneaker_l');

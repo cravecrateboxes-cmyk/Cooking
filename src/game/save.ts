@@ -1,4 +1,5 @@
 import type { UpgradeId } from './config';
+import type { QuestDay } from './quests';
 
 export type MapId = 'barn' | 'truck';
 
@@ -21,6 +22,8 @@ export interface SaveData {
   perks: string[];
   rushUntil: number;
   daily: { last: string; streak: number };
+  /** today's three quests; replaced by a fresh set on the first progress of a new day */
+  quests?: QuestDay;
   sound: boolean;
   music: boolean;
   tutorial: boolean;
@@ -49,9 +52,11 @@ export function freshSave(): SaveData {
 export function mapProgress(s: SaveData, id: MapId): MapProgress {
   let p = s.maps[id];
   if (!p) {
-    p = { unlocked: [], upgrades: { speed: 0, capacity: 0, kitchen: 0, menu: 0 }, served: 0 };
+    p = { unlocked: [], upgrades: { speed: 0, capacity: 0, kitchen: 0, menu: 0, counter: 0 }, served: 0 };
     s.maps[id] = p;
   }
+  // saves from before the Big Counter upgrade
+  p.upgrades.counter ??= 0;
   return p;
 }
 

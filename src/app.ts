@@ -6,12 +6,14 @@ import { Input } from './engine/input';
 import { GEM_ITEMS, UPGRADE_COSTS, type GemItem, type UpgradeId } from './game/config';
 import { Guide } from './game/guide';
 import { MAPS } from './game/maps';
+import { claimable, questsFor, questText, type QuestDay } from './game/quests';
 import { loadSave, writeSave, type MapId, type SaveData } from './game/save';
 import { World, type FloatKind, type Impact, type WorldUI } from './game/world';
 import { Hud } from './ui/hud';
 import { Labels } from './ui/labels';
 import { MainMenu, SettingsPanel } from './ui/menu';
 import { GemShop, UpgradePanel } from './ui/panels';
+import { QuestPanel } from './ui/quests';
 import { haptic } from './ui/haptics';
 import { icon } from './ui/svg';
 import { onTap } from './ui/tap';
@@ -34,6 +36,7 @@ export class App {
   readonly hud: Hud;
   readonly ups: UpgradePanel;
   readonly shop: GemShop;
+  readonly quests: QuestPanel;
   readonly input: Input;
   world: World | null = null;
   private guide: Guide | null = null;
@@ -96,6 +99,7 @@ export class App {
     ui.appendChild(this.wipe);
     this.ups = new UpgradePanel(ui);
     this.shop = new GemShop(ui);
+    this.quests = new QuestPanel(ui);
     this.menu = new MainMenu(ui);
     this.settings = new SettingsPanel(ui);
     this.hemi = new THREE.HemisphereLight('#d9f2ff', '#ffb98a', 1.55);
@@ -123,6 +127,9 @@ export class App {
     const back = () => (this.input.enabled = this.mode === 'play');
     this.ups.sheet.onClose = back;
     this.settings.sheet.onClose = back;
+    this.quests.sheet.onClose = back;
+    onTap(this.hud.questBtn, () => this.openQuests());
+    this.quests.onClaim = (i) => this.claimQuest(i);
     onTap(this.hud.menuBtn, () => this.openSettings());
     onTap(this.menu.settingsBtn, () => this.openSettings());
     onTap(this.menu.chestBtn, () => this.openShop());
@@ -185,6 +192,12 @@ export class App {
       banner: (title, sub) => this.hud.banner(title, sub),
       openUpgrades: () => this.openUpgrades(),
       nextMap: (map) => this.travel(map),
+      questDone: (q) => {
+        this.hud.banner('Quest complete', questText(q));
+        sfx.play('level');
+        this.hud.setQuestBadge(claimable(this.today()));
+        if (this.quests.sheet.open) this.quests.render(this.today());
+      },
     };
   }
 
@@ -230,6 +243,7 @@ export class App {
     this.hud.coins.set(this.save.coins, true);
     this.hud.gems.set(this.save.gems, true);
     this.hud.progress(w.unlocks.done, w.unlocks.total);
+    this.hud.setQuestBadge(claimable(this.today()));
     this.applyLook();
     const b = w.def.camBounds;
     this.rig.bounds = new THREE.Box2(new THREE.Vector2(b.minX, b.minZ), new THREE.Vector2(b.maxX, b.maxZ));
@@ -290,6 +304,7 @@ export class App {
   private openUpgrades(): void {
     if (!this.world || this.ups.sheet.open) return;
     this.shop.sheet.hide();
+    this.quests.sheet.hide();
     this.ups.render(this.world.progress, this.save.coins);
     this.ups.sheet.show();
     this.input.release();
@@ -300,11 +315,44 @@ export class App {
   private openShop(): void {
     if (this.shop.sheet.open) return;
     this.ups.sheet.hide();
+    this.quests.sheet.hide();
     this.renderShop();
     this.shop.sheet.show();
     this.input.release();
     this.input.enabled = false;
     sfx.play('whoosh');
+  }
+
+  /** Today's quests; a new calendar day swaps in a fresh set. */
+  private today(): QuestDay {
+    return (this.save.quests = questsFor(new Date().toDateString(), this.save.quests));
+  }
+
+  private openQuests(): void {
+    if (!this.world || this.quests.sheet.open) return;
+    this.ups.sheet.hide();
+    this.shop.sheet.hide();
+    this.quests.render(this.today());
+    this.quests.sheet.show();
+    this.input.release();
+    this.input.enabled = false;
+    sfx.play('whoosh');
+  }
+
+  private claimQuest(i: number): void {
+    const w = this.world;
+    const q = this.today();
+    const it = q.list[i];
+    if (!w || !it || it.claimed || it.got < it.goal) {
+      sfx.play('deny');
+      return;
+    }
+    it.claimed = true;
+    w.earnGems(it.gems, w.player.pos);
+    w.fx.confettiBurst(_v.copy(w.player.pos).setY(1.2), 40, 5);
+    writeSave(this.save, true);
+    this.quests.render(q);
+    this.hud.setQuestBadge(claimable(q));
   }
 
   private dailyReady(): boolean {

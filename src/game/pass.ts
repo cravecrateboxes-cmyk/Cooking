@@ -8,13 +8,15 @@ const STILL = new THREE.Vector2();
 /**
  * The pass: a tray on the counter where the chef stocks finished food. Guests at the front of the queue
  * are served from it automatically, so the chef never has to hold a dish while waiting for the right guest.
- * Two short piles side by side keep it readable instead of one tall tower.
+ * Short piles side by side keep it readable instead of one tall tower: two, or four in a square once the
+ * Big Counter upgrade lets it hold more than eight.
  */
 export class Pass {
   readonly root = new THREE.Group();
   private readonly piles: Stack[];
+  private cap = 0;
 
-  constructor(x: number, y: number, z: number, rot: number, readonly cap: number) {
+  constructor(x: number, y: number, z: number, rot: number, cap: number) {
     this.root.position.set(x, y, z);
     this.root.rotation.y = rot;
     const tray = spawn('tray');
@@ -23,10 +25,25 @@ export class Pass {
     this.piles = [new Stack(this.root, 0.06, 0), new Stack(this.root, 0.06, 0)];
     this.piles[0].anchor.position.x = -0.16;
     this.piles[1].anchor.position.x = 0.16;
+    this.setCap(cap);
+  }
+
+  /** How many dishes fit. Past eight, a back row of two more piles opens so no pile grows taller. */
+  setCap(cap: number): void {
+    this.cap = cap;
+    if (cap <= 8 || this.piles.length === 4) return;
+    for (const x of [-0.16, 0.16]) {
+      const s = new Stack(this.root, 0.06, -0.16);
+      s.anchor.position.x = x;
+      this.piles.push(s);
+    }
+    for (const s of this.piles.slice(0, 2)) s.anchor.position.z = 0.16;
   }
 
   get count(): number {
-    return this.piles[0].count + this.piles[1].count;
+    let n = 0;
+    for (const p of this.piles) n += p.count;
+    return n;
   }
 
   get full(): boolean {
@@ -35,7 +52,8 @@ export class Pass {
 
   /** Reserve a spot on the lower pile; the dish flies to that pile's top. */
   reserve(): Stack {
-    const p = this.piles[0].count <= this.piles[1].count ? this.piles[0] : this.piles[1];
+    let p = this.piles[0];
+    for (const q of this.piles) if (q.count < p.count) p = q;
     p.incoming++;
     return p;
   }

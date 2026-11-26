@@ -71,10 +71,11 @@ const UP_ICON: Record<UpgradeId, string> = {
   capacity: 'up_capacity',
   kitchen: 'st_grill',
   menu: 'food_sundae',
+  counter: 'up_counter',
 };
-const UP_TONE: Record<UpgradeId, string> = { speed: 't-teal', capacity: 't-orange', kitchen: 't-red', menu: 't-pink' };
+const UP_TONE: Record<UpgradeId, string> = { speed: 't-teal', capacity: 't-orange', kitchen: 't-red', menu: 't-pink', counter: 't-blue' };
 
-/** Four upgrade tracks, each row showing the stat now and after the next level. */
+/** Upgrade tracks, each row showing the stat now and after the next level. */
 export class UpgradePanel {
   readonly sheet: Sheet;
   private rows = new Map<UpgradeId, { btn: HTMLButtonElement; now: HTMLElement; next: HTMLElement; price: HTMLElement; pips: HTMLElement }>();

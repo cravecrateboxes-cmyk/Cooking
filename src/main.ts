@@ -24,7 +24,7 @@ async function boot(): Promise<void> {
   });
   const app = new App(canvas, ui, (r) =>
     renderIcons(r, [
-      'item_coin', 'item_gem', 'item_cash', 'st_grill',
+      'item_coin', 'item_gem', 'item_cash', 'st_grill', 'table',
       'cos_hat_cap', 'cos_hat_crown', 'cos_hat_cowboy', 'cos_hat_toque', 'cos_fit_apron', 'cos_fit_bowtie', 'cos_fit_scarf',
       'cos_shoe_sneaker_l', 'cos_shoe_boot_l', 'red_carpet',
     ]),

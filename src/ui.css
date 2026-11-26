@@ -449,6 +449,10 @@
   --row: #ffd0ea;
   --row-d: #ea7fb6;
 }
+.t-blue {
+  --row: #c6e2ff;
+  --row-d: #5c9fe6;
+}
 .up-pic {
   width: 56px;
   height: 56px;
@@ -715,4 +719,84 @@
     visibility: visible;
     transition: transform 0.4s var(--ease-out), opacity 0.15s;
   }
+}
+
+/* ---------- daily quests ---------- */
+.round-btn .badge {
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #ff4f5e;
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  -webkit-text-stroke-width: 0;
+  display: none;
+}
+.round-btn.quest.has .badge {
+  display: block;
+  animation: badge-pop 1.6s ease-in-out infinite;
+}
+@keyframes badge-pop {
+  0%,
+  75%,
+  100% {
+    transform: scale(1);
+  }
+  85% {
+    transform: scale(1.25);
+  }
+}
+.round-btn.quest {
+  background: linear-gradient(#ffd9ae 0 45%, #ffb36b 46%);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.6), 0 4px 0 #d9782a, 0 7px 0 rgba(42, 27, 74, 0.3);
+}
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.quest-title {
+  font-size: 18px;
+  line-height: 1.1;
+}
+.quest-track {
+  position: relative;
+  height: 22px;
+  margin-top: 6px;
+  border: 3px solid var(--ink);
+  border-radius: 11px;
+  background: rgba(42, 27, 74, 0.18);
+  overflow: hidden;
+}
+.quest-fill {
+  height: 100%;
+  background: linear-gradient(#7cf08f 0 50%, var(--go) 51%);
+  transition: width 0.3s var(--ease-out);
+}
+.quest-n {
+  position: absolute;
+  inset: 0;
+  font-size: 13px;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+}
+.quest-row.claimed {
+  filter: saturate(0.55);
+  opacity: 0.85;
+}
+.quest-reset {
+  text-align: center;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--ink-soft);
 }

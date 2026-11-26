@@ -33,8 +33,8 @@ export const TUNE = {
   /** dish multiplier from the Tasty Menu upgrade */
   priceMult: [1, 1.25, 1.5, 1.8, 2.2, 2.7],
   stationTray: 8,
-  /** dishes the counter tray holds */
-  passCap: 8,
+  /** dishes the counter tray holds, by Big Counter level */
+  passCap: [8, 10, 12, 14, 16, 18],
   /** seconds between dishes handed from the counter tray to the guest in front */
   passServeEvery: 0.14,
   handoffEvery: 0.085,
@@ -70,6 +70,7 @@ export const UPGRADE_COSTS = {
   capacity: [80, 220, 520, 1100, 2200],
   kitchen: [120, 300, 650, 1300, 2600],
   menu: [150, 400, 900, 1900, 3800],
+  counter: [100, 260, 600, 1250, 2500],
 };
 
 export type UpgradeId = keyof typeof UPGRADE_COSTS;
@@ -79,6 +80,7 @@ export const UPGRADE_INFO: Record<UpgradeId, { title: string; stat: (lv: number)
   capacity: { title: 'Big Arms', stat: (lv) => `Carry ${TUNE.player.capacity[lv]}` },
   kitchen: { title: 'Hot Kitchen', stat: (lv) => `Cooks ${(1 / TUNE.cookTime[lv]).toFixed(1)}/s` },
   menu: { title: 'Tasty Menu', stat: (lv) => `Prices x${TUNE.priceMult[lv].toFixed(2)}` },
+  counter: { title: 'Big Counter', stat: (lv) => `Holds ${TUNE.passCap[lv]}` },
 };
 
 /** Gem shop: rarer currency, bigger payoffs. Cosmetics are hats, clothes and shoes only; characters never get faces. */

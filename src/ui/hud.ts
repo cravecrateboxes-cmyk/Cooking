@@ -60,6 +60,8 @@ export class Hud {
   readonly upgradeBtn: HTMLButtonElement;
   readonly shopBtn: HTMLButtonElement;
   readonly menuBtn: HTMLButtonElement;
+  readonly questBtn: HTMLButtonElement;
+  private readonly questBadge: HTMLSpanElement;
   readonly hint: HTMLDivElement;
   private readonly fly: HTMLDivElement;
 
@@ -93,6 +95,11 @@ export class Hud {
     this.menuBtn.type = 'button';
     this.menuBtn.setAttribute('aria-label', 'Menu');
     this.menuBtn.appendChild(icon('gear'));
+    this.questBtn = el('button', 'round-btn small quest', side);
+    this.questBtn.type = 'button';
+    this.questBtn.setAttribute('aria-label', 'Daily quests');
+    this.questBtn.appendChild(icon('quest'));
+    this.questBadge = el('span', 'num badge', this.questBtn);
     this.upgradeBtn = el('button', 'round-btn up', side);
     this.upgradeBtn.type = 'button';
     this.upgradeBtn.setAttribute('aria-label', 'Upgrades');
@@ -135,6 +142,12 @@ export class Hud {
     this.bannerEl.classList.add('on');
     clearTimeout(this.bannerTimer);
     this.bannerTimer = window.setTimeout(() => this.bannerEl.classList.remove('on'), 2200);
+  }
+
+  /** Red dot with the number of quests waiting to be claimed. */
+  setQuestBadge(n: number): void {
+    this.questBadge.textContent = String(n);
+    this.questBtn.classList.toggle('has', n > 0);
   }
 
   setHint(text: string | null): void {
