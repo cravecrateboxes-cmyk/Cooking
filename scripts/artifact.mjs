@@ -11,6 +11,8 @@ const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 const js = html.match(/src="\.\/assets\/([^"]+\.js)"/)?.[1];
 const css = html.match(/href="\.\/assets\/([^"]+\.css)"/)?.[1];
 const body = html.match(/<body>([\s\S]*)<\/body>/)?.[1];
+// inline head scripts (the older-WebView text check) run before the loading screen paints
+const headScripts = (html.match(/<head>([\s\S]*)<\/head>/)?.[1].match(/<script>[\s\S]*?<\/script>/g) ?? []).join('\n');
 if (!js || !css || !body) throw new Error('dist/index.html is missing the bundle, the stylesheet or the body');
 
 fs.rmSync(out, { recursive: true, force: true });
@@ -20,6 +22,7 @@ const page = `<title>Order Up</title>
 <meta name="theme-color" content="#ff8a2b">
 <link rel="stylesheet" href="./assets/${css}">
 <style>html,body{height:100%;background:#2b1640}</style>
+${headScripts}
 ${body.trim()}
 <script type="module" src="./assets/${js}"></script>
 `;
