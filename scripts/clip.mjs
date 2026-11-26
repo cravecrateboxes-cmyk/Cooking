@@ -47,31 +47,42 @@ const browser = await chromium.launch({
 });
 const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: +(process.env.CLIP_DPR || 2), isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 await ctx.addInitScript((seed) => localStorage.setItem('order-up-save-v1', JSON.stringify(seed)), seed);
-await ctx.addInitScript((slow) => {
+// the page's clocks, with a rate the recorder turns down once the restaurant is up and running
+await ctx.addInitScript(() => {
   const pn = performance.now.bind(performance);
-  const t0 = pn();
-  const scale = (t) => t0 + (t - t0) * slow;
-  performance.now = () => scale(pn());
-  const d0 = Date.now();
-  const realDate = Date.now;
-  Date.now = () => d0 + (realDate() - d0) * slow;
+  let rate = 1;
+  let real0 = pn();
+  let virt0 = real0;
+  const virt = (t) => virt0 + (t - real0) * rate;
+  window.__clockRate = (r) => {
+    const now = pn();
+    virt0 = virt(now);
+    real0 = now;
+    rate = r;
+  };
+  performance.now = () => virt(pn());
+  const date0 = Date.now();
+  const perf0 = performance.now();
+  Date.now = () => date0 + (performance.now() - perf0);
   const raf = window.requestAnimationFrame.bind(window);
-  window.requestAnimationFrame = (cb) => raf((ts) => cb(scale(ts)));
+  window.requestAnimationFrame = (cb) => raf((ts) => cb(virt(ts)));
   const st = window.setTimeout.bind(window);
-  window.setTimeout = (fn, ms = 0, ...rest) => st(fn, ms / slow, ...rest);
+  window.setTimeout = (fn, ms = 0, ...rest) => st(fn, ms / rate, ...rest);
   const si = window.setInterval.bind(window);
-  window.setInterval = (fn, ms = 0, ...rest) => si(fn, ms / slow, ...rest);
-}, SLOW);
+  window.setInterval = (fn, ms = 0, ...rest) => si(fn, ms / rate, ...rest);
+});
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.error(`page error: ${e.message}`));
 await page.goto(ORIGIN + '/');
-await page.waitForFunction(() => window.ready === true, null, { timeout: 300_000, polling: 500 });
+await page.waitForFunction(() => window.ready === true, null, { timeout: 120_000 });
+await page.evaluate(() => window.app.play('barn'));
+await page.waitForTimeout(4000); // the map wipe and a few guests arriving, at full speed
 const cdp = await ctx.newCDPSession(page);
 await cdp.send('Animation.enable');
 await cdp.send('Animation.setPlaybackRate', { playbackRate: SLOW });
-await page.evaluate(() => window.app.play('barn'));
+await page.evaluate((r) => window.__clockRate(r), SLOW);
 const gameNow = () => page.evaluate(() => performance.now() / 1000);
-const begin = (await gameNow()) + 2.5; // the map wipe and a few guests arriving
+const begin = await gameNow();
 
 // capture as fast as the browser allows, noting each capture's moment in game time
 const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'clip-'));

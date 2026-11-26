@@ -14,7 +14,7 @@ sleep 25
 adb exec-out screencap -p > "$out/01-title.png"
 read -r w h < <(adb shell wm size | sed -E 's/.*: ([0-9]+)x([0-9]+).*/\1 \2/')
 # the green Play button sits near the bottom middle of the title screen
-adb shell input tap $((w / 2)) $((h * 84 / 100))
+adb shell input tap $((w / 2)) $((h * 92 / 100))
 sleep 8
 adb exec-out screencap -p > "$out/02-playing.png"
 cx=$((w / 2)); cy=$((h * 62 / 100))

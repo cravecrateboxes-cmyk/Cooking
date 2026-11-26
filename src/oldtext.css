@@ -1,0 +1,22 @@
+/*
+ * Older Android WebViews (Chrome before 123) ignore paint-order on HTML text, so a thick
+ * -webkit-text-stroke eats into the letters and the game's outlined titles turn dark. There the outline
+ * is drawn with shadows instead; src/main.ts adds the class when the WebView is that old.
+ */
+html.no-paint-order
+  :is(.disp, .bubble-item b, .floater, .tag-price span, .tag.travel, .banner-title, .gel .num, .load-logo, .map-n, .map-name,
+    .round-label, .sheet-title, .wallet-n, .wallet-plus, .map-card-name, .play-text, .logo-a, .logo-b) {
+  --oc: var(--ink);
+  -webkit-text-stroke-width: 0 !important;
+  text-shadow:
+    0.09em 0 0 var(--oc), -0.09em 0 0 var(--oc), 0 0.09em 0 var(--oc), 0 -0.09em 0 var(--oc),
+    0.064em 0.064em 0 var(--oc), -0.064em 0.064em 0 var(--oc), 0.064em -0.064em 0 var(--oc), -0.064em -0.064em 0 var(--oc),
+    0.083em 0.035em 0 var(--oc), -0.083em 0.035em 0 var(--oc), 0.083em -0.035em 0 var(--oc), -0.083em -0.035em 0 var(--oc),
+    0.035em 0.083em 0 var(--oc), -0.035em 0.083em 0 var(--oc), 0.035em -0.083em 0 var(--oc), -0.035em -0.083em 0 var(--oc);
+}
+html.no-paint-order .tag.travel {
+  --oc: #0d6c6a;
+}
+html.no-paint-order .floater.combo {
+  --oc: #d4337a;
+}
