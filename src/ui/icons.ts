@@ -46,7 +46,7 @@ function build(name: string): THREE.Object3D {
  * as an image for order bubbles and menus. The UI then shows the actual 3D food, not a drawn stand-in.
  */
 export function renderIcons(renderer: THREE.WebGLRenderer, names: string[] = []): void {
-  const size = 128;
+  const size = 256;
   const rt = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
   rt.texture.colorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();

@@ -3,11 +3,25 @@ import { spawn } from '../engine/assets';
 import { toonMat, toonRamp } from '../engine/toon';
 
 /** Building blocks shared by the map environments: canvas textures, floors, boxes and prop placement. */
-export function checker(a: string, b: string, cells = 2, px = 64, grout?: string): THREE.CanvasTexture {
+
+/** canvas textures are drawn at this multiple of their layout size, so lines stay crisp on 3x phone screens */
+export const TEX_SCALE = 2;
+export const TEX_ANISOTROPY = 8;
+
+/** A 2d canvas of layout size w x h, backed by TEX_SCALE times the pixels and drawn in layout units. */
+export function texCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
-  c.width = c.height = px * cells;
+  c.width = w * TEX_SCALE;
+  c.height = h * TEX_SCALE;
   const g = c.getContext('2d');
   if (!g) throw new Error('2d canvas unavailable');
+  g.scale(TEX_SCALE, TEX_SCALE);
+  return [c, g];
+}
+
+export function checker(a: string, b: string, cells = 2, px = 64, grout?: string): THREE.CanvasTexture {
+  const size = px * cells;
+  const [c, g] = texCanvas(size, size);
   for (let y = 0; y < cells; y++) {
     for (let x = 0; x < cells; x++) {
       g.fillStyle = (x + y) % 2 ? a : b;
@@ -20,52 +34,45 @@ export function checker(a: string, b: string, cells = 2, px = 64, grout?: string
     for (let i = 0; i <= cells; i++) {
       g.beginPath();
       g.moveTo(i * px, 0);
-      g.lineTo(i * px, c.height);
+      g.lineTo(i * px, size);
       g.moveTo(0, i * px);
-      g.lineTo(c.width, i * px);
+      g.lineTo(size, i * px);
       g.stroke();
     }
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = TEX_ANISOTROPY;
   return t;
 }
 
 export function planks(a: string, b: string): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 256;
-  const g = c.getContext('2d');
-  if (!g) throw new Error('2d canvas unavailable');
+  const W = 256;
+  const [c, g] = texCanvas(W, W);
   const rows = 8;
-  const h = c.height / rows;
+  const h = W / rows;
   for (let r = 0; r < rows; r++) {
     const off = (r % 2) * 96;
-    for (let x = -off; x < c.width; x += 192) {
+    for (let x = -off; x < W; x += 192) {
       g.fillStyle = (r + Math.floor(x / 192)) % 2 ? a : b;
       g.fillRect(x, r * h, 192, h);
       g.fillStyle = 'rgba(80,30,20,0.35)';
       g.fillRect(x, r * h, 3, h);
     }
     g.fillStyle = 'rgba(80,30,20,0.35)';
-    g.fillRect(0, r * h, c.width, 3);
+    g.fillRect(0, r * h, W, 3);
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = TEX_ANISOTROPY;
   return t;
 }
 
 /** Vertical diner wallpaper stripes with a thin darker pinstripe. */
 export function stripes(a: string, b: string, pin: string): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 128;
-  c.height = 8;
-  const g = c.getContext('2d');
-  if (!g) throw new Error('2d canvas unavailable');
+  const [c, g] = texCanvas(128, 8);
   g.fillStyle = a;
   g.fillRect(0, 0, 64, 8);
   g.fillStyle = b;
@@ -77,7 +84,7 @@ export function stripes(a: string, b: string, pin: string): THREE.CanvasTexture 
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = TEX_ANISOTROPY;
   return t;
 }
 

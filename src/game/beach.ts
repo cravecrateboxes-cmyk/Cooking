@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { spawn } from '../engine/assets';
 import type { Env } from './environment';
-import { block, checker, floor, planks, put } from './envkit';
+import { block, checker, floor, planks, put, TEX_ANISOTROPY, texCanvas } from './envkit';
 import { TRUCK as TRUCK_MAP } from './maps';
 import type { Rect } from './nav';
 import { Rng } from './rng';
@@ -14,10 +14,7 @@ const SHORE = 16;
 const DIAG = Math.SQRT1_2;
 
 function sandTex(): THREE.CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  if (!g) throw new Error('2d canvas unavailable');
+  const [c, g] = texCanvas(128, 128);
   g.fillStyle = '#ffd3a1';
   g.fillRect(0, 0, 128, 128);
   const rng = new Rng(11);
@@ -31,7 +28,7 @@ function sandTex(): THREE.CanvasTexture {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = TEX_ANISOTROPY;
   return t;
 }
 

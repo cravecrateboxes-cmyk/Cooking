@@ -15,6 +15,13 @@ import { GemShop, UpgradePanel } from './ui/panels';
 import { onTap } from './ui/tap';
 
 const _v = new THREE.Vector3();
+/** render resolution: up to the screen's own (phones are 3x), never under 2x on a phone screen */
+const MAX_RATIO = 3;
+const MIN_PHONE_RATIO = 2;
+const RATIO_STEP = 0.25;
+/** average frame times (ms) that lower or raise the resolution; 33 ms is a phone capped at 30 fps */
+const SLOW_FRAME_MS = 38;
+const FAST_FRAME_MS = 19;
 
 /** Owns the renderer, the frame loop and the screens; builds a World for the current map. */
 export class App {
@@ -33,6 +40,11 @@ export class App {
   private last = performance.now();
   private slow = 0;
   private pixelRatio: number;
+  /** never render below this: a phone screen at 1x looks blurry, which reads as a cheap game */
+  private readonly minRatio: number;
+  /** the highest ratio this device has held; a ratio it once dropped from is not tried again */
+  private maxRatio: number;
+  private fast = 0;
   paused = false;
   /** simulation steps per frame; only automated playtests change it */
   speed = 1;
@@ -51,7 +63,10 @@ export class App {
     prepare: (r: THREE.WebGLRenderer) => void,
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = window.devicePixelRatio || 1;
+    this.maxRatio = Math.min(dpr, MAX_RATIO);
+    this.minRatio = Math.min(dpr, MIN_PHONE_RATIO);
+    this.pixelRatio = this.maxRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
@@ -425,14 +440,31 @@ export class App {
   private adapt(ms: number): void {
     if (ms > 200) return;
     this.frameAvg += (ms - this.frameAvg) * 0.05;
-    if (this.frameAvg > 24 && this.pixelRatio > 1) {
-      this.slow += 1;
-      if (this.slow > 90) {
+    // a phone held at 30 fps (low power mode, a busy viewer) is not struggling, so only clearly slower
+    // frames lower the resolution, and steady fast frames raise it back
+    if (this.frameAvg > SLOW_FRAME_MS && this.pixelRatio > this.minRatio) {
+      this.fast = 0;
+      if (++this.slow > 120) {
         this.slow = 0;
-        this.pixelRatio = Math.max(1, this.pixelRatio - 0.25);
-        this.renderer.setPixelRatio(this.pixelRatio);
-        this.resize();
+        this.maxRatio = this.pixelRatio - RATIO_STEP;
+        this.setRatio(Math.max(this.minRatio, this.maxRatio));
       }
-    } else this.slow = 0;
+    } else if (this.frameAvg < FAST_FRAME_MS && this.pixelRatio < this.maxRatio) {
+      this.slow = 0;
+      if (++this.fast > 240) {
+        this.fast = 0;
+        this.setRatio(Math.min(this.maxRatio, this.pixelRatio + RATIO_STEP));
+      }
+    } else {
+      this.slow = 0;
+      this.fast = 0;
+    }
   }
+
+  private setRatio(r: number): void {
+    this.pixelRatio = r;
+    this.renderer.setPixelRatio(r);
+    this.resize();
+  }
+
 }
