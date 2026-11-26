@@ -1,7 +1,9 @@
-// Records a short phone-sized clip of the home-screen build, frame by frame on a fake clock, so a slow
-// software renderer still gives a smooth 24 fps video. Used for before-and-after comparisons.
+// Records a short phone-sized clip of the home-screen build. A software renderer is far too slow for real
+// time, so the page's clocks (performance.now, animation frames, timers, CSS animations) run SLOW times
+// slower than real, frames are captured as fast as the browser gives them, and each video frame takes the
+// capture nearest its moment in game time. The result plays at true speed and smoothly at 24 fps.
 //
-//   CHROME_PATH=/path/to/chromium [CLIP_DPR=2] node scripts/clip.mjs <webapp dir> <out.mp4> [seconds]
+//   CHROME_PATH=/path/to/chromium [CLIP_DPR=2] [SLOW=0.008] node scripts/clip.mjs <webapp dir> <out.mp4> [seconds]
 //
 // The restaurant runs itself (Corner Grill with its staff hired); halfway through, the chef steps onto
 // the last table pad so the clip also shows an unlock.
@@ -18,7 +20,7 @@ const DIR = path.resolve(dirArg);
 const OUT = path.resolve(outArg);
 const SECONDS = +(secArg || 9);
 const FPS = 24;
-const FRAME_MS = 1000 / FPS;
+const SLOW = +(process.env.SLOW || 0.008); // a software-rendered capture takes about 5 s
 const VIEW = { width: 393, height: 852 };
 const ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -45,35 +47,60 @@ const browser = await chromium.launch({
 });
 const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: +(process.env.CLIP_DPR || 2), isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 await ctx.addInitScript((seed) => localStorage.setItem('order-up-save-v1', JSON.stringify(seed)), seed);
+await ctx.addInitScript((slow) => {
+  const pn = performance.now.bind(performance);
+  const t0 = pn();
+  const scale = (t) => t0 + (t - t0) * slow;
+  performance.now = () => scale(pn());
+  const d0 = Date.now();
+  const realDate = Date.now;
+  Date.now = () => d0 + (realDate() - d0) * slow;
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => raf((ts) => cb(scale(ts)));
+  const st = window.setTimeout.bind(window);
+  window.setTimeout = (fn, ms = 0, ...rest) => st(fn, ms / slow, ...rest);
+  const si = window.setInterval.bind(window);
+  window.setInterval = (fn, ms = 0, ...rest) => si(fn, ms / slow, ...rest);
+}, SLOW);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.error(`page error: ${e.message}`));
-await page.clock.install();
-await page.goto(ORIGIN + '/', { waitUntil: 'commit' });
-for (let i = 0; i < 600 && !(await page.evaluate(() => window.ready === true)); i++) await page.clock.runFor(100);
-await page.evaluate(() => window.app.play('barn'));
-await page.clock.runFor(2500); // the map wipe and a few guests arriving
-
-// CSS animations run on real time, not the fake clock; slow them to the clip's pace
+await page.goto(ORIGIN + '/');
+await page.waitForFunction(() => window.ready === true, null, { timeout: 300_000, polling: 500 });
 const cdp = await ctx.newCDPSession(page);
 await cdp.send('Animation.enable');
+await cdp.send('Animation.setPlaybackRate', { playbackRate: SLOW });
+await page.evaluate(() => window.app.play('barn'));
+const gameNow = () => page.evaluate(() => performance.now() / 1000);
+const begin = (await gameNow()) + 2.5; // the map wipe and a few guests arriving
 
+// capture as fast as the browser allows, noting each capture's moment in game time
 const frames = fs.mkdtempSync(path.join(os.tmpdir(), 'clip-'));
-const total = SECONDS * FPS;
-let t0 = Date.now();
-for (let f = 0; f < total; f++) {
-  if (f === Math.round(total * 0.55)) await page.evaluate(() => window.app.world.player.pos.set(4.9, 0, 5.4));
-  await page.clock.runFor(FRAME_MS);
-  // straight from the compositor: Playwright's own screenshot waits for a frame the fake clock never gives
-  const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
-  fs.writeFileSync(path.join(frames, `f${String(f).padStart(4, '0')}.jpg`), Buffer.from(shot.data, 'base64'));
-  if (f % 60 === 59) console.warn(`frame ${f + 1}/${total}`);
-  if (f === 4) {
-    const wall = (Date.now() - t0) / 5;
-    await cdp.send('Animation.setPlaybackRate', { playbackRate: Math.min(1, FRAME_MS / wall) });
+const caps = [];
+let moved = false;
+for (;;) {
+  const t = (await gameNow()) - begin;
+  if (t > SECONDS) break;
+  if (!moved && t > SECONDS * 0.55) {
+    moved = true;
+    await page.evaluate(() => window.app.world.player.pos.set(4.9, 0, 5.4));
   }
+  if (t < 0) continue;
+  const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
+  const file = path.join(frames, `c${String(caps.length).padStart(5, '0')}.jpg`);
+  fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
+  caps.push({ t: (t + (await gameNow()) - begin) / 2, file });
+  if (caps.length % 50 === 0) console.warn(`${caps.length} captures, ${t.toFixed(1)} of ${SECONDS} s`);
+}
+// one video frame every 1/FPS s of game time, each the nearest capture
+const total = SECONDS * FPS;
+let j = 0;
+for (let f = 0; f < total; f++) {
+  const want = f / FPS;
+  while (j + 1 < caps.length && Math.abs(caps[j + 1].t - want) <= Math.abs(caps[j].t - want)) j++;
+  fs.copyFileSync(caps[j].file, path.join(frames, `f${String(f).padStart(4, '0')}.jpg`));
 }
 await browser.close();
 server.close();
 execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(frames, 'f%04d.jpg'), '-vf', `scale=${Math.round(VIEW.width * 2)}:-2`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', OUT]);
 fs.rmSync(frames, { recursive: true, force: true });
-console.warn(`clip written: ${OUT} (${total} frames)`);
+console.warn(`clip written: ${OUT} (${total} frames from ${caps.length} captures)`);

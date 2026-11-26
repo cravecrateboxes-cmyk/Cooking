@@ -6,6 +6,8 @@ apk="$1"
 out="$2"
 mkdir -p "$out"
 adb install -r "$apk"
+# Android's one-time "Viewing full screen" hint would cover the game; a player dismisses it once with "Got it"
+adb shell settings put secure immersive_mode_confirmations confirmed
 adb logcat -c
 adb shell am start -n com.cravecrate.orderup/.MainActivity
 sleep 25
@@ -22,5 +24,5 @@ adb exec-out screencap -p > "$out/03-walked.png"
 sleep 15
 adb exec-out screencap -p > "$out/04-later.png"
 adb logcat -d > "$out/logcat.txt" || true
-grep -E "chromium.*(Uncaught|Error)" "$out/logcat.txt" > "$out/js-errors.txt" || true
+grep -E "Capacitor/Console.*(Uncaught|Error|error)" "$out/logcat.txt" > "$out/js-errors.txt" || true
 if adb shell pidof com.cravecrate.orderup > /dev/null; then echo "app still running"; else echo "app crashed" && exit 1; fi
