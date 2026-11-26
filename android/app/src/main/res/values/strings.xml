@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Order Up</string>
+    <string name="title_activity_main">Order Up</string>
+    <string name="package_name">com.cravecrate.orderup</string>
+    <string name="custom_url_scheme">com.cravecrate.orderup</string>
+</resources>

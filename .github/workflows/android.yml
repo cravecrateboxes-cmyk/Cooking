@@ -1,0 +1,67 @@
+# Builds the Android app on GitHub's machines (this repo's own computer can't reach Google's Android
+# downloads), runs it on an Android emulator for screenshots, and puts the unsigned release bundle,
+# a test APK and the screenshots on the android-build branch. The release bundle is signed afterwards,
+# outside GitHub, so the signing key never leaves the project files.
+name: Android build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['src/**', 'public/**', 'android/**', 'capacitor.config.json', 'package*.json', '.github/workflows/android.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - name: Web build and sync into the Android project
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+      - name: Release bundle (unsigned) and a debug APK for the emulator
+        working-directory: android
+        run: ./gradlew --no-daemon bundleRelease assembleDebug
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Play it on an emulator and take screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash android/emulator-check.sh android/app/build/outputs/apk/debug/app-debug.apk shots
+      - name: Put the build on the android-build branch
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/bundle/release/app-release.aab out/order-up-unsigned.aab
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/order-up-test.apk
+          cp -r shots out/shots
+          echo "${GITHUB_SHA}" > out/commit.txt
+          cd out
+          git init -q -b android-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "Android build of ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" android-build

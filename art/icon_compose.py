@@ -37,8 +37,9 @@ def compose(n, fill):
     return bg.convert("RGB")
 
 
-big = compose(1024, 0.8)
-for n in (180, 192, 512):
-    big.resize((n, n), Image.LANCZOS).save(os.path.join(OUT, f"icon-{n}.png"), optimize=True)
-compose(1024, 0.62).resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, "icon-maskable-512.png"), optimize=True)
-os.remove(os.path.join(OUT, "_subject.png"))
+if __name__ == "__main__":
+    big = compose(1024, 0.8)
+    for n in (180, 192, 512):
+        big.resize((n, n), Image.LANCZOS).save(os.path.join(OUT, f"icon-{n}.png"), optimize=True)
+    compose(1024, 0.62).resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, "icon-maskable-512.png"), optimize=True)
+    os.remove(os.path.join(OUT, "_subject.png"))

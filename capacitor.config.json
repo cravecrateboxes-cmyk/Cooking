@@ -1,0 +1,8 @@
+{
+  "appId": "com.cravecrate.orderup",
+  "appName": "Order Up",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#2b1640"
+  }
+}
