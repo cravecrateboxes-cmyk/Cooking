@@ -13,9 +13,6 @@ declare global {
   }
 }
 
-// outlined text needs paint-order on HTML text (Chrome 123+); older Android WebViews get a shadow outline
-const chrome = /Chrome\/(\d+)/.exec(navigator.userAgent);
-if (chrome && Number(chrome[1]) < 123) document.documentElement.classList.add('no-paint-order');
 
 async function boot(): Promise<void> {
   const canvas = document.getElementById('gl') as HTMLCanvasElement;

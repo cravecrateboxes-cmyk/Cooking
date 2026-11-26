@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#ff8a2b" />
     <title>Order Up</title>
+    <script>
+      // outlined text needs paint-order on HTML text (Chrome 123+); older Android WebViews get a shadow outline (src/oldtext.css)
+      var chrome = /Chrome\/(\d+)/.exec(navigator.userAgent);
+      if (chrome && Number(chrome[1]) < 123) document.documentElement.classList.add('no-paint-order');
+    </script>
   </head>
   <body>
     <div id="app">

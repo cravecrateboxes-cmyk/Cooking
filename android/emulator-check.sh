@@ -18,7 +18,7 @@ adb shell input tap $((w / 2)) $((h * 92 / 100))
 sleep 8
 adb exec-out screencap -p > "$out/02-playing.png"
 cx=$((w / 2)); cy=$((h * 62 / 100))
-adb shell input swipe "$cx" "$cy" $((cx + w / 6)) $((cy - h / 14)) 2500
+adb shell input swipe "$cx" "$cy" $((cx + w / 6)) $((cy - h / 14)) 12000
 sleep 2
 adb exec-out screencap -p > "$out/03-walked.png"
 sleep 15
