@@ -424,7 +424,7 @@
   background: var(--row, #fff);
   box-shadow: 0 4px 0 var(--row-d, #ccc);
 }
-.up-row.flash {
+.up-row.bought {
   animation: row-flash 0.5s var(--ease-out);
 }
 @keyframes row-flash {

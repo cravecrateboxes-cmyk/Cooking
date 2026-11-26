@@ -127,9 +127,9 @@ export class UpgradePanel {
     const r = this.rows.get(id);
     const row = r?.btn.parentElement;
     if (!row) return;
-    row.classList.remove('flash');
+    row.classList.remove('bought');
     void row.offsetWidth;
-    row.classList.add('flash');
+    row.classList.add('bought');
   }
 }
 
