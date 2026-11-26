@@ -7,11 +7,13 @@ import { GEM_ITEMS, UPGRADE_COSTS, type GemItem, type UpgradeId } from './game/c
 import { Guide } from './game/guide';
 import { MAPS } from './game/maps';
 import { loadSave, writeSave, type MapId, type SaveData } from './game/save';
-import { World, type WorldUI } from './game/world';
+import { World, type FloatKind, type Impact, type WorldUI } from './game/world';
 import { Hud } from './ui/hud';
 import { Labels } from './ui/labels';
 import { MainMenu, SettingsPanel } from './ui/menu';
 import { GemShop, UpgradePanel } from './ui/panels';
+import { haptic } from './ui/haptics';
+import { icon } from './ui/svg';
 import { onTap } from './ui/tap';
 
 const _v = new THREE.Vector3();
@@ -56,6 +58,7 @@ export class App {
   private readonly menu: MainMenu;
   private readonly settings: SettingsPanel;
   private readonly wipe: HTMLDivElement;
+  private readonly flash: HTMLDivElement;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -85,6 +88,9 @@ export class App {
     ui.appendChild(stickLayer);
     this.input = new Input(canvas, stickLayer);
     this.hud = new Hud(ui);
+    this.flash = document.createElement('div');
+    this.flash.className = 'flash';
+    ui.appendChild(this.flash);
     this.wipe = document.createElement('div');
     this.wipe.className = 'wipe';
     ui.appendChild(this.wipe);
@@ -174,6 +180,7 @@ export class App {
         this.hud.gems.set(gems);
       },
       float: (at, text, kind) => this.floater(at, text, kind),
+      impact: (kind) => this.impact(kind),
       progress: (done, total) => this.hud.progress(done, total),
       banner: (title, sub) => this.hud.banner(title, sub),
       openUpgrades: () => this.openUpgrades(),
@@ -181,12 +188,28 @@ export class App {
     };
   }
 
-  private floater(at: THREE.Vector3, text: string, kind: 'coin' | 'gem' | 'tip' | 'info'): void {
+  private floater(at: THREE.Vector3, text: string, kind: FloatKind): void {
     const e = document.createElement('div');
     e.className = `floater ${kind}`;
-    e.textContent = text;
+    if (kind === 'heart') e.appendChild(icon('heart'));
+    else e.textContent = text;
     const l = this.labels.add(e, null, 0, at);
     setTimeout(() => this.labels.remove(l), 950);
+  }
+
+  /** What a moment feels like: a buzz where the phone can, a shake, and for unlocks a zoom punch and flash. */
+  private impact(kind: Impact): void {
+    haptic(kind);
+    if (kind === 'light') return;
+    if (kind === 'medium') {
+      this.rig.addShake(0.12);
+      return;
+    }
+    this.rig.addShake(0.3);
+    this.rig.punch(1);
+    this.flash.classList.remove('on');
+    void this.flash.offsetWidth;
+    this.flash.classList.add('on');
   }
 
   start(map: MapId): void {

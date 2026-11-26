@@ -178,6 +178,13 @@ export class Interact {
       s.workWorld(_b);
       this.w.fx.steam(_b, s.steamColor);
     }
+    s.sparkT += dt;
+    if (s.sparkT > (s.hot ? 0.16 : 0.4)) {
+      s.sparkT = 0;
+      s.workWorld(_b);
+      if (s.hot) this.w.fx.sparkle(_b, '#ff9a3c', 2, 1.4);
+      else this.w.fx.sparkle(_b, s.steamColor, 1, 1.1);
+    }
     this.cookSound += dt;
     if (this.cookSound > 0.32 && s.workers > 0 && this.at === s) {
       this.cookSound = 0;
@@ -186,7 +193,8 @@ export class Interact {
   }
 
   private dishDone(s: Station, obj: THREE.Object3D, from: THREE.Vector3, toPlayer: boolean): void {
-    this.w.fx.sparkle(from, '#ffd23f', 5, 2);
+    this.w.fx.sparkle(from, '#ffd23f', 9, 2.6);
+    this.w.fx.dust(from, 4, s.steamColor, 0.12);
     if (toPlayer && this.w.player.canTakeFood()) {
       this.toPlayer(s.dish, obj, from);
       return;
@@ -207,8 +215,9 @@ export class Interact {
     this.w.flights.launch(obj, from ?? _a, (o) => p.stack.topWorld(o), () => {
       p.stack.incoming--;
       p.stack.push(dish, obj);
-      p.char.bump(0.1);
+      p.char.bump(0.16);
       sfx.play('pickup');
+      this.w.ui.impact('light');
     }, { dur: 0.24, arc: 0.6 });
   }
 
@@ -220,6 +229,7 @@ export class Interact {
       bill.obj.removeFromParent();
       w.earn(bill.value, p.pos);
       sfx.play('coin');
+      w.ui.impact('light');
     }, { dur: 0.26, arc: 0.7, spin: 1, scaleTo: 0.4 });
   }
 

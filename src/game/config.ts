@@ -54,6 +54,9 @@ export const TUNE = {
   },
   eatTime: 6.5,
   tipFast: 8,
+  /** seconds between two paying guests that still chain a serving combo, and its highest step */
+  comboWindow: 7,
+  comboCap: 9,
   gemsPerVip: 1,
   padDrainRate: 0.9,
 };

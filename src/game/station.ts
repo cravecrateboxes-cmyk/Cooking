@@ -9,13 +9,13 @@ import { Stack } from './stack';
 const TOP = 0.7;
 
 /** Where the dish takes shape on each machine, in the machine's own frame (+Z is the front). */
-const WORK: Record<string, { at: [number, number, number]; raw?: string; steam: string }> = {
-  st_grill: { at: [-0.1, TOP + 0.08, 0.02], raw: 'item_raw_patty', steam: '#ffd9b0' },
-  st_fryer: { at: [-0.33, TOP + 0.2, -0.03], steam: '#ffe7a6' },
+const WORK: Record<string, { at: [number, number, number]; raw?: string; steam: string; hot?: boolean }> = {
+  st_grill: { at: [-0.1, TOP + 0.08, 0.02], raw: 'item_raw_patty', steam: '#ffd9b0', hot: true },
+  st_fryer: { at: [-0.33, TOP + 0.2, -0.03], steam: '#ffe7a6', hot: true },
   st_soda: { at: [0, TOP + 0.04, 0.2], steam: '#bfe8ff' },
   st_sundae: { at: [0, TOP + 0.02, 0.24], steam: '#ffd6ec' },
-  st_oven: { at: [0, TOP + 0.02, 0.42], raw: 'item_dough', steam: '#ffc88a' },
-  st_hotdog: { at: [0, TOP + 0.1, 0.02], steam: '#ffd2a0' },
+  st_oven: { at: [0, TOP + 0.02, 0.42], raw: 'item_dough', steam: '#ffc88a', hot: true },
+  st_hotdog: { at: [0, TOP + 0.1, 0.02], steam: '#ffd2a0', hot: true },
 };
 
 const _v = new THREE.Vector3();
@@ -45,8 +45,11 @@ export class Station {
   readonly ghost: THREE.Group;
   private readonly workAt: THREE.Vector3;
   readonly steamColor: string;
+  /** a hot station sizzles with sparks while it cooks; a cold one sparkles */
+  readonly hot: boolean;
   private pop = 1;
   steamT = 0;
+  sparkT = 0;
 
   constructor(readonly def: StationDef) {
     this.dish = def.dish;
@@ -67,6 +70,7 @@ export class Station {
     const w = WORK[def.model];
     this.workAt = new THREE.Vector3(...w.at);
     this.steamColor = w.steam;
+    this.hot = w.hot === true;
     this.precursor = spawn(w.raw ?? DISHES[def.dish].model);
     this.precursor.position.copy(this.workAt);
     this.precursor.scale.setScalar(0.001);

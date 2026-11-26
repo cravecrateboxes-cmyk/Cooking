@@ -172,6 +172,7 @@ export class Unlocks {
     w.fx.confettiBurst(_a.setY(0.6), 90, 7);
     w.fx.sparkle(_a.setY(1.2), '#ffd23f', 16, 4);
     sfx.play('unlock');
+    w.ui.impact('big');
     w.ui.banner(d.title, d.kind === 'next_map' ? 'A new place to cook' : this.blurb(d));
     w.ui.progress(this.done, this.total);
     // a gem every third purchase keeps the rarer currency trickling in

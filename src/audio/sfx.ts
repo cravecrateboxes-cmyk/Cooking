@@ -19,7 +19,8 @@ export type Sound =
   | 'level'
   | 'sizzle'
   | 'ding'
-  | 'wash';
+  | 'wash'
+  | 'combo';
 
 export class Sfx {
   private ctx: AudioContext | null = null;
@@ -168,6 +169,13 @@ export class Sfx {
         [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, 0.32, 'triangle', 0.2, i * 0.055));
         this.hiss(0.4, 0.12, 2500, 0.5, 0.25);
         break;
+      case 'combo': {
+        // three quick notes that climb a whole tone with every step of the streak (intensity = step)
+        const base = 587 * Math.pow(2, (Math.min(intensity, 9) - 2) / 6);
+        [1, 1.26, 1.5].forEach((m, i) => this.tone(base * m, 0.16, 'triangle', 0.18, i * 0.06));
+        this.tone(base * 2, 0.3, 'sine', 0.12, 0.18);
+        break;
+      }
       case 'level':
         [392, 523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.4, 'square', 0.07, i * 0.08));
         [784, 1046, 1318].forEach((f, i) => this.tone(f, 0.6, 'sine', 0.16, 0.35 + i * 0.03));

@@ -3,6 +3,7 @@ import { sfx } from '../audio/sfx';
 import { spawn } from '../engine/assets';
 import { Bubble } from '../ui/bubble';
 import { DISHES, TUNE, type Dish } from './config';
+import { Combo } from './combo';
 import { Customer } from './customer';
 import type { Table } from './table';
 import type { World } from './world';
@@ -17,6 +18,7 @@ export class Service {
   private passT = 0;
   private readonly queue: (Customer | null)[];
   private spawnT = 0.5;
+  private readonly combo = new Combo(TUNE.comboWindow, TUNE.comboCap);
   private readonly slots: THREE.Vector3[];
 
   constructor(private readonly w: World) {
@@ -204,9 +206,9 @@ export class Service {
     w.progress.served++;
     this.payInto(c, value, (o) => w.cash.nextWorld(o), (v, obj) => w.cash.add(v, obj));
     c.char.play('cheer', 0.12);
+    this.cheer(c, value, tip);
     c.char.root.getWorldPosition(_b);
     _b.y += 1.7;
-    if (tip) w.ui.float(_b, 'Fast!', 'tip');
     if (c.vip) w.earnGems(TUNE.gemsPerVip, _b);
     w.tweens.wait(0.7, () => {
       const exit = w.def.exit.map(v3);
@@ -235,6 +237,30 @@ export class Service {
       });
     }
     w.tweens.wait(0.05, () => sfx.play('pay'));
+  }
+
+  /**
+   * A paying guest is the game's main reward: the amount pops over their head, a heart follows, and guests
+   * paid close together chain a combo that gets louder each step. Labels are staggered so none overlap.
+   */
+  private cheer(c: Customer, value: number, tip: boolean): void {
+    const w = this.w;
+    const head = c.char.root.getWorldPosition(new THREE.Vector3()).setY(1.75);
+    w.ui.float(head, `+${value}`, 'coin');
+    w.fx.sparkle(head, '#ffd23f', 10, 2.8);
+    w.tweens.wait(0.16, () => w.ui.float(head.clone().setY(2.15), '', 'heart'));
+    if (tip) w.tweens.wait(0.34, () => w.ui.float(head.clone().setY(2.5), 'Fast!', 'tip'));
+    const n = this.combo.hit(w.time);
+    if (n < 2) {
+      w.ui.impact('light');
+      return;
+    }
+    w.tweens.wait(tip ? 0.52 : 0.34, () => {
+      w.ui.float(head.clone().setY(tip ? 2.85 : 2.5), `Combo x${n}`, 'combo');
+      sfx.play('combo', n);
+      w.fx.confettiBurst(head, 10 + n * 4, 3.5);
+    });
+    w.ui.impact('medium');
   }
 
   private sitDown(c: Customer, t: Table, i: number): void {
@@ -298,9 +324,9 @@ export class Service {
     w.progress.served++;
     t.addPlate();
     this.payInto(c, value, (o) => t.cash.nextWorld(o), (v, obj) => t.cash.add(v, obj));
+    this.cheer(c, value, tip);
     c.char.root.getWorldPosition(_b);
     _b.y += 1.4;
-    if (tip) w.ui.float(_b, 'Fast!', 'tip');
     if (c.vip) w.earnGems(TUNE.gemsPerVip, _b);
     c.state = 'leaving';
     s.guest = null;

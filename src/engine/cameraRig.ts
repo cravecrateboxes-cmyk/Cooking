@@ -36,7 +36,7 @@ export class CameraRig {
   /** @param short the screen's shorter side in CSS px: bigger screens see more of the place, not bigger people */
   resize(aspect: number, short: number): void {
     const cam = this.camera;
-    this.span = THREE.MathUtils.clamp(7.6 + (short - 420) * 0.0085, 7.6, 11.5);
+    this.span = THREE.MathUtils.clamp(6.9 + (short - 420) * 0.0085, 6.9, 11.5);
     cam.aspect = aspect;
     // narrower field of view on wide screens keeps the iso look; portrait needs a bit more vertical room
     cam.fov = aspect < 1 ? 34 : 28;

@@ -46,6 +46,12 @@ export const ICONS = {
   check: wrap(`<path d="M11 25l9 9 17-19" fill="none" stroke="${O}" stroke-width="10"/><path d="M11 25l9 9 17-19" fill="none" stroke="#5ce27a" stroke-width="5"/>`),
   arrow: wrap(`<path d="M8 24h26M24 12l12 12-12 12" fill="none" stroke="${O}" stroke-width="10"/><path d="M8 24h26M24 12l12 12-12 12" fill="none" stroke="#fff" stroke-width="4.5"/>`),
   play: wrap(`<path d="M15 9.5 39 24 15 38.5z" fill="#fff" stroke="${O}" stroke-width="4"/>`),
+  /** a plump two-tone heart with a shine: a happy guest */
+  heart: wrap(
+    `<path d="M24 41C11 32 5 25 5 17a9.5 9.5 0 0 1 19-3 9.5 9.5 0 0 1 19 3c0 8-6 15-19 24z" fill="#ff4f7b" stroke="${O}" stroke-width="3.5"/>` +
+      `<path d="M24 37c-9-6.5-14-12-15.5-17" fill="none" stroke="#c92557" stroke-width="3" opacity="0.55"/>` +
+      `<ellipse cx="14" cy="16" rx="3.6" ry="2.4" transform="rotate(-35 14 16)" fill="#fff" opacity="0.85"/>`,
+  ),
   back: wrap(`<path d="M40 24H14M24 12 12 24l12 12" fill="none" stroke="${O}" stroke-width="10"/><path d="M40 24H14M24 12 12 24l12 12" fill="none" stroke="#fff" stroke-width="4.5"/>`),
 };
 

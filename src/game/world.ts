@@ -24,9 +24,14 @@ import { Table } from './table';
 import { Unlocks } from './unlocks';
 import { Interact } from './interact';
 
+export type FloatKind = 'coin' | 'gem' | 'tip' | 'info' | 'combo' | 'heart';
+export type Impact = 'light' | 'medium' | 'big';
+
 export interface WorldUI {
   money(coins: number, gems: number, from?: THREE.Vector3, kind?: 'coin' | 'gem'): void;
-  float(at: THREE.Vector3, text: string, kind: 'coin' | 'gem' | 'tip' | 'info'): void;
+  float(at: THREE.Vector3, text: string, kind: FloatKind): void;
+  /** a felt moment: light for pickups, medium for a paying guest, big for an unlock */
+  impact(kind: Impact): void;
   progress(done: number, total: number): void;
   banner(title: string, sub: string): void;
   openUpgrades(): void;
