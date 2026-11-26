@@ -23,6 +23,8 @@ export class Bubble {
     this.ring.className = 'bubble-ring';
     this.el.appendChild(this.ring);
     this.label = labels.add(this.el, anchor, offsetY);
+    // a guest's order matters more than a price tag behind it, so bubbles draw over tags
+    this.label.el.classList.add('lbl-front');
     this.label.visible = false;
   }
 

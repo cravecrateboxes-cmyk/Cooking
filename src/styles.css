@@ -116,6 +116,10 @@ canvas#gl {
   will-change: transform;
 }
 
+.lbl-front {
+  z-index: 2;
+}
+
 .bubble {
   display: flex;
   align-items: center;
