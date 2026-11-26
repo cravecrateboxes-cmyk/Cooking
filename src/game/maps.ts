@@ -115,10 +115,11 @@ export const BARN: MapDef = {
       { x: -3.4, z: 5.65 },
     ],
   },
+  // the lane between the two table columns fits the chef past both chairs with room to spare
   tables: [
-    { id: 't1', model: 'table', x: 1.9, z: -0.4, rot: 0, seats: seatsLR(1.9, -0.4) },
+    { id: 't1', model: 'table', x: 1.6, z: -0.4, rot: 0, seats: seatsLR(1.6, -0.4) },
     { id: 't2', model: 'table', x: 4.9, z: -0.4, rot: 0, seats: seatsLR(4.9, -0.4) },
-    { id: 't3', model: 'table', x: 1.9, z: 2.6, rot: 0, seats: seatsLR(1.9, 2.6) },
+    { id: 't3', model: 'table', x: 1.6, z: 2.6, rot: 0, seats: seatsLR(1.6, 2.6) },
     { id: 't4', model: 'table', x: 4.9, z: 2.6, rot: 0, seats: seatsLR(4.9, 2.6) },
     { id: 't5', model: 'table', x: 4.9, z: 5.4, rot: 0, seats: seatsLR(4.9, 5.4) },
   ],
@@ -144,12 +145,12 @@ export const BARN: MapDef = {
   startDishes: ['burger'],
   unlocks: [
     { id: 'soda', kind: 'station', target: 'soda', cost: 30, x: -2.6, z: -6.1, title: 'Soda Fountain' },
-    { id: 't1', kind: 'table', target: 't1', cost: 45, x: 1.9, z: -0.4, title: 'Table' },
+    { id: 't1', kind: 'table', target: 't1', cost: 45, x: 1.6, z: -0.4, title: 'Table' },
     { id: 'sink', kind: 'sink', cost: 35, x: 4.3, z: -6.15, title: 'Dish Sink' },
     { id: 't2', kind: 'table', target: 't2', cost: 80, x: 4.9, z: -0.4, title: 'Table' },
     { id: 'fryer', kind: 'station', target: 'fryer', cost: 120, x: -0.4, z: -6.1, title: 'Fryer' },
     { id: 'cook_grill', kind: 'cook', target: 'grill', cost: 160, x: -4.8, z: -3.7, title: 'Hire Grill Cook' },
-    { id: 't3', kind: 'table', target: 't3', cost: 180, x: 1.9, z: 2.6, title: 'Table' },
+    { id: 't3', kind: 'table', target: 't3', cost: 180, x: 1.6, z: 2.6, title: 'Table' },
     { id: 'waiter', kind: 'waiter', cost: 240, x: 0.4, z: -3.6, title: 'Hire Waiter' },
     { id: 't4', kind: 'table', target: 't4', cost: 300, x: 4.9, z: 2.6, title: 'Table' },
     { id: 'sundae', kind: 'station', target: 'sundae', cost: 0, gems: 8, x: 1.8, z: -6.1, title: 'Sundae Bar' },

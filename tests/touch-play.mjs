@@ -270,6 +270,7 @@ async function playMaps(limitSec) {
   let lastUnlock = { n: -1, map: '', at: 0 };
   let firstDone = 0;
   let boardOpens = 0;
+  let dropped = 0; // thumb presses the joystick did not catch
   let nextTrace = 0;
   let nextUpgradeCheck = 0;
   let nextShot = 0;
@@ -303,9 +304,10 @@ async function playMaps(limitSec) {
     if (s.sim - lastUnlock.at > STALL) {
       const why = await state(() => {
         const p = app.world.player;
-        return { at: [+p.pos.x.toFixed(2), +p.pos.z.toFixed(2)], goal: window.__goal, carrying: p.stack.items.map((i) => i.kind), coins: app.save.coins };
+        return { at: [+p.pos.x.toFixed(2), +p.pos.z.toFixed(2)], goal: window.__goal, carrying: p.stack.items.map((i) => i.kind), coins: app.save.coins, mode: app.mode, input: app.input.enabled, dir: [+app.input.dir.x.toFixed(2), +app.input.dir.y.toFixed(2)], vel: +p.vel.length().toFixed(2), route: window.__route };
       });
       fail(`stuck: no new unlock on ${s.map} for ${STALL} game seconds (${s.done}/${s.total}) ${JSON.stringify(why)}`);
+      if (held) await touch('touchEnd', 0, 0);
       await shot('stuck');
       break;
     }
@@ -317,7 +319,7 @@ async function playMaps(limitSec) {
       break;
     }
     if (UNTIL && lastUnlock.n >= 0 && s.done >= firstDone + UNTIL) {
-      step(`core loop done: ${s.done - firstDone} pads bought by touch at ${Math.round(s.sim)} game seconds, ${s.coins} coins, board opened Upgrades ${boardOpens} times`);
+      step(`core loop done: ${s.done - firstDone} pads bought by touch at ${Math.round(s.sim)} game seconds, ${s.coins} coins, board opened Upgrades ${boardOpens} times, ${dropped} presses dropped`);
       if (held) await touch('touchEnd', 0, 0);
       await sleep(800);
       await shot('core-loop');
@@ -374,6 +376,12 @@ async function playMaps(limitSec) {
         held = true;
       }
       await touch('touchMove', x, y);
+      // a press the joystick did not catch is lifted and tried again, as a thumb would
+      if (!(await state(() => app.input.touching))) {
+        dropped += 1;
+        await touch('touchEnd', ax, ay);
+        held = false;
+      }
     }
     // let the game run for the granted slice, then look again
     await state(() => {
@@ -488,9 +496,15 @@ function installBrain() {
       }
       if (now >= repathAt || !route.length) {
         repathAt = now + 0.3;
-        route = w.nav.path(p.pos.clone().setY(0), p.pos.clone().set(goal[0], 0, goal[1]));
+        // the game's grid ignores chairs (guests sit in them), so the test plans on one that keeps the chef's body clear of everything it bumps into
+        if (!w.__chefNav || w.__chefNavFor !== p.obstacles) {
+          w.__chefNav = new w.nav.constructor(w.def.nav, p.obstacles, 0.34);
+          w.__chefNavFor = p.obstacles;
+        }
+        route = w.__chefNav.path(p.pos.clone().setY(0), p.pos.clone().set(goal[0], 0, goal[1]));
       }
       while (route.length > 1 && Math.hypot(route[0].x - p.pos.x, route[0].z - p.pos.z) < 0.35) route.shift();
+      window.__route = route.map((r) => [+r.x.toFixed(2), +r.z.toFixed(2)]);
       const wp = route.length ? route[0] : V(goal[0], goal[1]);
       const d = Math.hypot(wp.x - p.pos.x, wp.z - p.pos.z);
       // the test can only steer a few times a second; slow the game near the goal so the chef does not orbit it

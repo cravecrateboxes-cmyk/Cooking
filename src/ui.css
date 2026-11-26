@@ -358,6 +358,10 @@
   box-shadow: 0 -6px 0 rgba(42, 27, 74, 0.25);
   padding-bottom: var(--safe-b);
 }
+/* a closing sheet stops catching touches at once, so a thumb that lands while it slides away still steers */
+.sheet:not(.on) {
+  pointer-events: none;
+}
 .sheet.on {
   transform: translate(-50%, 0);
   transition: transform 0.42s var(--ease-out);
