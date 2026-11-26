@@ -1,7 +1,7 @@
 // Records a short phone-sized clip of the home-screen build, frame by frame on a fake clock, so a slow
 // software renderer still gives a smooth 24 fps video. Used for before-and-after comparisons.
 //
-//   CHROME_PATH=/path/to/chromium node scripts/clip.mjs <webapp dir> <out.mp4> [seconds]
+//   CHROME_PATH=/path/to/chromium [CLIP_DPR=2] node scripts/clip.mjs <webapp dir> <out.mp4> [seconds]
 //
 // The restaurant runs itself (Corner Grill with its staff hired); halfway through, the chef steps onto
 // the last table pad so the clip also shows an unlock.
@@ -43,7 +43,7 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   args: ['--no-sandbox', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--in-process-gpu'],
 });
-const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: +(process.env.CLIP_DPR || 2), isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 await ctx.addInitScript((seed) => localStorage.setItem('order-up-save-v1', JSON.stringify(seed)), seed);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.error(`page error: ${e.message}`));
@@ -74,6 +74,6 @@ for (let f = 0; f < total; f++) {
 }
 await browser.close();
 server.close();
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(frames, 'f%04d.jpg'), '-vf', 'scale=786:-2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', OUT]);
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(frames, 'f%04d.jpg'), '-vf', `scale=${Math.round(VIEW.width * 2)}:-2`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', OUT]);
 fs.rmSync(frames, { recursive: true, force: true });
 console.warn(`clip written: ${OUT} (${total} frames)`);
