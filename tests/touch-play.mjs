@@ -84,12 +84,15 @@ page.on('request', (r) => {
   if (!r.url().startsWith(ORIGIN) && !r.url().startsWith('data:') && !r.url().startsWith('blob:')) fail(`request to another host: ${r.url()}`);
 });
 page.on('requestfailed', (r) => fail(`request failed: ${r.url().slice(0, 120)} ${r.failure()?.errorText}`));
-// FROM=truck starts from a save with Corner Grill finished, so the Beach Truck can be played on its own
-if (process.env.FROM === 'truck') {
+// FROM=truck starts from a save with Corner Grill finished, so the Beach Truck can be played on its own;
+// FROM=done starts with both maps finished, to check the ending and the title screen in seconds
+if (process.env.FROM === 'truck' || process.env.FROM === 'done') {
   const src = fs.readFileSync(path.join(ROOT, 'src/game/maps.ts'), 'utf8');
-  const barn = src.slice(src.indexOf('export const BARN'), src.indexOf('export const TRUCK'));
-  const ids = [...barn.matchAll(/\{ id: '([a-z0-9_]+)', kind/g)].map((m) => m[1]);
-  const seed = { v: 1, coins: 0, gems: 0, current: 'truck', maps: { barn: { unlocked: ids, upgrades: { speed: 0, capacity: 0, kitchen: 0, menu: 0 }, served: 0 } } };
+  const padIds = (text) => [...text.matchAll(/\{ id: '([a-z0-9_]+)', kind/g)].map((m) => m[1]);
+  const fresh = (unlocked) => ({ unlocked, upgrades: { speed: 0, capacity: 0, kitchen: 0, menu: 0 }, served: 0 });
+  const maps = { barn: fresh(padIds(src.slice(src.indexOf('export const BARN'), src.indexOf('export const TRUCK')))) };
+  if (process.env.FROM === 'done') maps.truck = fresh(padIds(src.slice(src.indexOf('export const TRUCK'), src.indexOf('export const MAPS'))));
+  const seed = { v: 1, coins: 0, gems: 0, current: 'truck', maps };
   await ctx.addInitScript((seed) => {
     if (location.pathname.startsWith('/page/') && !sessionStorage.getItem('seeded')) {
       sessionStorage.setItem('seeded', '1');
