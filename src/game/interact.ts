@@ -14,6 +14,8 @@ export class Interact {
   private cashT = 0;
   private washT = 0;
   private binT = 0;
+  /** seconds the chef has stood on the register pad holding food */
+  private serveT = 0;
   private readonly dwell = new Map<Station, number>();
   /** 0..1 lid bounce after something lands in the bin */
   private lid = 0;
@@ -59,10 +61,15 @@ export class Interact {
     }
 
     // counter: hand the guest at the front what they want, then stock the counter tray with the rest
+    // food only leaves the chef's arms after a short stand on the pad (its fill shows it), so carrying a
+    // seated table's order past the register drops nothing
     const onServe = w.servePad.contains(p.pos, 0.05);
     const front = w.service.front();
-    w.servePad.update(dt, w.time, onServe, p.stack.holdsFood && (!w.pass.full || (!!front && p.stack.items.some((i) => front.wants(i.kind as Dish)))));
-    if (onServe && p.stack.holdsFood && this.handT >= TUNE.handoffEvery) {
+    const canServe = p.stack.holdsFood && (!w.pass.full || (!!front && p.stack.items.some((i) => front.wants(i.kind as Dish))));
+    this.serveT = onServe && canServe ? this.serveT + dt : 0;
+    w.servePad.fill = Math.min(1, this.serveT / TUNE.serveDwell);
+    w.servePad.update(dt, w.time, onServe, canServe);
+    if (this.serveT >= TUNE.serveDwell && this.handT >= TUNE.handoffEvery) {
       const it = front ? this.takeWanted(p.stack, (d) => front.wants(d)) : null;
       if (it && front) {
         this.handT = 0;

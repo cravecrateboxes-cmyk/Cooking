@@ -41,12 +41,12 @@ export function buildRestaurant(): Env {
 
   // ground: lawn all around, then the street and sidewalk south of the building
   floor(root, -40, -30, 40, 40, checker('#56c24c', '#4fb846', 2, 64), 6, -0.02);
-  floor(root, -40, 7.3, 40, 9.9, checker('#b4b9e6', '#a6acdc', 2, 64, '#8d93c8'), 1.2, -0.005);
-  block(root, -40, 9.9, 40, 10.1, -0.05, 0.12, '#7d83bd', false);
-  floor(root, -40, 10.1, 40, 15.5, checker('#5b4f8a', '#574a85', 2, 64), 4, -0.01);
+  floor(root, -40, 7.3, 40, 9.9, checker('#e9cc9c', '#dfbf8c', 2, 64, '#c49d66'), 1.2, -0.005);
+  block(root, -40, 9.9, 40, 10.1, -0.05, 0.12, '#b98c58', false);
+  floor(root, -40, 10.1, 40, 15.5, checker('#4d5266', '#494e61', 2, 64), 4, -0.01);
   for (let x = -38; x < 40; x += 3) block(root, x, 12.72, x + 1.6, 12.88, -0.005, 0.005, '#ffd23f', false);
-  block(root, -40, 15.5, 40, 15.7, -0.05, 0.12, '#7d83bd', false);
-  floor(root, -40, 15.7, 40, 17.6, checker('#b4b9e6', '#a6acdc', 2, 64, '#8d93c8'), 1.2, -0.005);
+  block(root, -40, 15.5, 40, 15.7, -0.05, 0.12, '#b98c58', false);
+  floor(root, -40, 15.7, 40, 17.6, checker('#e9cc9c', '#dfbf8c', 2, 64, '#c49d66'), 1.2, -0.005);
 
   // building floor: teal kitchen tiles, warm planks in the dining room, a slab edge around it
   block(root, -7.3, -7.3, 7.3, 7.3, -0.12, -0.01, '#c06a3a', false);

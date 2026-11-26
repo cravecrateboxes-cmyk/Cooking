@@ -7,6 +7,22 @@ import { ghostOf } from './ghost';
 import { Pad } from './pad';
 
 const TOP = { table: 0.67, picnic_table: 0.74 } as const;
+/**
+ * Dish spots per guest, as [sideways, toward the guest] from the table centre in that guest's frame. Orders are at
+ * most three dishes; dishes are up to 0.17 m in radius, the round top 0.5 m and the picnic top 0.8 by 0.4 m half-size.
+ */
+const SLOTS = {
+  table: [
+    [0, 0.3],
+    [0.22, 0.12],
+    [-0.22, 0.12],
+  ],
+  picnic_table: [
+    [-0.4, 0.2],
+    [-0.04, 0.2],
+    [0.32, 0.2],
+  ],
+} as const;
 
 export interface Seat {
   pos: THREE.Vector3;
@@ -77,15 +93,14 @@ export class Table {
   }
 
   /** Where a dish lands in front of seat i. */
+  /** Where the k-th dish for seat i sits, fully on the top and clear of the other guest's dishes. */
   placeFor(i: number, k: number, out: THREE.Vector3): THREE.Vector3 {
     const s = this.seats[i];
-    const dx = this.def.x - s.pos.x;
-    const dz = this.def.z - s.pos.z;
-    const len = Math.hypot(dx, dz) || 1;
-    const side = (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * 0.2;
-    const px = -dz / len;
-    const pz = dx / len;
-    return out.set(s.pos.x + (dx / len) * 0.62 + px * side, this.top, s.pos.z + (dz / len) * 0.62 + pz * side);
+    const fx = Math.sin(s.rot);
+    const fz = Math.cos(s.rot);
+    const [side, near] = SLOTS[this.def.model][Math.min(k, 2)];
+    // side runs along the guest's right, near runs from the table centre back toward the guest
+    return out.set(this.def.x + fz * side - fx * near, this.top, this.def.z - fx * side - fz * near);
   }
 
   addPlate(): THREE.Object3D {

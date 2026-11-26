@@ -13,6 +13,8 @@ interface Spot {
   pad: Pad;
   label: Label;
   left: HTMLElement;
+  /** the tag inside the label's wrapper */
+  tag: HTMLElement;
   coinT: number;
 }
 
@@ -84,9 +86,15 @@ export class Unlocks {
       img.alt = '';
       const left = document.createElement('span');
       price.append(img, left);
-      el.append(title, price);
+      // a pointer down to the pad and, once it can be paid, a "walk in" line: it is a spot to stand on, not a button
+      const walk = document.createElement('div');
+      walk.className = 'tag-walk';
+      walk.textContent = 'Walk in';
+      const tail = document.createElement('div');
+      tail.className = 'tag-tail';
+      el.append(title, price, walk, tail);
       const label = w.labels.add(el, null, 0.25, new THREE.Vector3(d.x, 0, d.z));
-      const spot: Spot = { def: d, pad, label, left, coinT: 0 };
+      const spot: Spot = { def: d, pad, label, left, tag: el, coinT: 0 };
       this.setLeft(spot);
       this.spots.push(spot);
     }
@@ -120,7 +128,9 @@ export class Unlocks {
       const on = s.pad.contains(p.pos, 0.05);
       const d = s.def;
       const wallet = d.gems ? w.save.gems : w.save.coins;
-      s.pad.update(dt, w.time, on && wallet > 0, wallet >= this.price(d) - this.paid(d));
+      const ready = wallet >= this.price(d) - this.paid(d);
+      s.pad.update(dt, w.time, on && wallet > 0, ready);
+      if (s.tag.classList.contains('ready') !== (ready && !on)) s.tag.classList.toggle('ready', ready && !on);
       s.label.scale = on ? 1.12 : 1;
       if (!on || wallet <= 0) continue;
       const need = this.price(d) - this.paid(d);

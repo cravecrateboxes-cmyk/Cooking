@@ -40,10 +40,14 @@ export const TUNE = {
   handoffEvery: 0.085,
   /** seconds on a station pad before its waiting dishes jump into the chef's arms */
   grabDwell: 0.18,
+  /** seconds standing on the register pad before food leaves the chef's arms, so walking past drops nothing */
+  serveDwell: 0.5,
   cashEvery: 0.035,
   customer: {
     walk: 2.15,
     patience: 26,
+    /** seconds of patience given back each time part of an order arrives */
+    partialBoost: 4,
     spawnEvery: [3.2, 1.7],
     maxInside: 16,
     vipChance: 0.07,

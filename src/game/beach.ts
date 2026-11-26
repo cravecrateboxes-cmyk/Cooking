@@ -77,13 +77,14 @@ function truck(root: THREE.Group, obstacles: Rect[]): void {
 /** Wooden deck in front of the hatch (queue and picnic area) and the boardwalk guests arrive on. */
 function decks(root: THREE.Group, obstacles: Rect[]): void {
   const wood = planks('#e5a46b', '#d8955c');
-  block(root, -1.95, -3.0, 7.75, 7.5, -0.1, 0.0, '#a7653a', false);
-  floor(root, -1.85, -2.9, 7.65, 7.4, wood, 2.4, 0.004);
+  // the deck runs the whole hatch side and its top edge lines up with the boardwalk's, so the two read as one walkway
+  block(root, -1.95, -4.7, 7.75, 7.5, -0.1, 0.0, '#a7653a', false);
+  floor(root, -1.85, -4.6, 7.65, 7.4, wood, 2.4, 0.004);
   block(root, 7.6, -4.7, 26, -2.5, -0.1, 0.0, '#a7653a', false);
   floor(root, 7.6, -4.6, 26, -2.6, wood, 2.4, 0.004);
   // rope posts along the deck's open edges, clear of the paths guests walk
   const posts: [number, number][] = [];
-  for (let px = -1.2; px < 5.5; px += 1.55) posts.push([px, -2.8]);
+  for (let px = -1.2; px < 5.5; px += 1.55) posts.push([px, -4.5]);
   for (let pz = 2.6; pz < 7.5; pz += 1.6) posts.push([7.55, pz]);
   for (const [px, pz] of posts) {
     put(root, 'bollard', px, pz, 0, 1);

@@ -10,18 +10,12 @@ import type { World } from './world';
 const STAFF_COLOUR = { cook: '#ff8a2b', waiter: '#3fa9f5', runner: '#8a5cf5' } as const;
 type Role = keyof typeof STAFF_COLOUR;
 
-interface Job {
-  kind: 'fetch' | 'deliver' | 'plates' | 'sink' | 'home';
-  station?: Station;
-  table?: Table;
-  dish?: Dish;
-}
-
 const _a = new THREE.Vector3();
 
 class Helper extends Walker {
-  job: Job | null = null;
   busyT = 0;
+  /** the dish whose items are still flying into this helper's arms (stack.incoming counts them) */
+  inbound: Dish | null = null;
   constructor(
     readonly role: Role,
     w: World,
@@ -87,7 +81,7 @@ export class Staffing {
     }
   }
 
-  /** dishes still owed to seated guests, minus what is already being carried to them */
+  /** dishes still owed to seated guests, one entry per dish */
   private owed(): { table: Table; dish: Dish }[] {
     const out: { table: Table; dish: Dish }[] = [];
     for (const t of this.w.tables) {
@@ -100,25 +94,55 @@ export class Staffing {
     return out;
   }
 
+  /** how many of a dish the waiters hold or are picking up */
+  private carried(d: Dish): number {
+    let n = 0;
+    for (const h of this.helpers) {
+      if (h.role !== 'waiter') continue;
+      n += h.stack.countOf(d);
+      if (h.inbound === d) n += h.stack.incoming;
+    }
+    return n;
+  }
+
+  /** seated guests' need for a dish that no waiter is already bringing */
+  private shortfall(d: Dish): number {
+    let need = 0;
+    for (const o of this.owed()) if (o.dish === d) need++;
+    return need - this.carried(d);
+  }
+
   private waiter(h: Helper): void {
     const w = this.w;
-    // carrying food: take it to whoever wants it
     if (h.stack.holdsFood) {
+      // take it to a seated guest who still wants it
       const owed = this.owed().find((o) => h.stack.has(o.dish));
       if (owed) {
         const t = owed.table;
         h.goTo(this.approach(t), () => this.serveTable(h, t));
         return;
       }
-      h.goTo(new THREE.Vector3(w.def.staffHome.x, 0, w.def.staffHome.z));
-      return;
+      // nobody at the tables wants it any more (the chef served them first, or they left): don't stand
+      // there holding it. The guest at the counter can have it, otherwise it goes back on its tray.
+      const front = w.service.front();
+      if (front && h.stack.items.some((i) => front.wants(i.kind as Dish))) {
+        h.goTo(w.servePad.pos.clone().add(_a.set(-0.6, 0, 0)), () => this.serveCounter(h, front));
+        return;
+      }
+      const spare = h.stack.items.find((i) => i.kind !== 'plate');
+      const st = spare && w.stations.find((x) => x.dish === spare.kind);
+      if (st) {
+        h.goTo(st.pad.pos, () => this.giveBack(h, st));
+        return;
+      }
     }
     if (h.stack.holdsPlates) {
       h.goTo(w.sinkPad.pos, () => this.dropPlates(h));
       return;
     }
-    // fetch a dish that a seated guest wants and that is waiting on a tray
+    // fetch a dish that a seated guest wants, nobody is bringing yet, and that is waiting on a tray
     for (const o of this.owed()) {
+      if (this.shortfall(o.dish) <= 0) continue;
       const st = w.stations.find((s) => s.dish === o.dish && s.tray.items.length > 0);
       if (st) {
         h.goTo(st.pad.pos, () => this.fetch(h, st));
@@ -145,6 +169,13 @@ export class Staffing {
         h.goTo(w.servePad.pos.clone().add(_a.set(-0.6, 0, 0)), () => this.serveCounter(h, front));
         return;
       }
+      // the guest at the counter doesn't want it (the one it was for got served or left): put it back
+      const spare = front && h.stack.items.find((i) => i.kind !== 'plate');
+      const st = spare && w.stations.find((x) => x.dish === spare.kind);
+      if (st) {
+        h.goTo(st.pad.pos, () => this.giveBack(h, st));
+        return;
+      }
     }
     if (front) {
       const need = front.order.find((l) => l.got < l.want && !h.stack.has(l.dish));
@@ -168,8 +199,11 @@ export class Staffing {
   private fetch(h: Helper, st: Station, forGuest?: Customer): void {
     const w = this.w;
     let n = 0;
-    const want = (d: Dish) => (forGuest ? forGuest.wants(d) : this.owed().some((o) => o.dish === d));
-    while (st.tray.items.length && h.stack.count < TUNE.staff.capacity && want(st.dish) && n < TUNE.staff.capacity) {
+    // the runner takes what the counter guest still needs; the waiter what the tables need and nobody is bringing
+    const line = forGuest?.order.find((l) => l.dish === st.dish);
+    const limit = forGuest ? (line ? line.want - line.got - h.stack.countOf(st.dish) : 0) : this.shortfall(st.dish);
+    h.inbound = st.dish;
+    while (st.tray.items.length && h.stack.count < TUNE.staff.capacity && n < limit) {
       const it = st.tray.take();
       if (!it) break;
       const dish = st.dish;
@@ -183,7 +217,6 @@ export class Staffing {
         }, { dur: 0.22, arc: 0.5 }),
       );
       n++;
-      if (forGuest && n >= forGuest.remaining) break;
     }
     h.busyT = n * TUNE.handoffEvery + 0.25;
   }
@@ -214,6 +247,27 @@ export class Staffing {
       }
     }
     h.busyT = 0.3;
+  }
+
+  /** put dishes nobody is waiting for back on the station's tray, where the chef or a later order can use them */
+  private giveBack(h: Helper, st: Station): void {
+    const w = this.w;
+    let n = 0;
+    while (h.stack.has(st.dish)) {
+      const it = h.stack.take(st.dish);
+      if (!it) break;
+      const dish = st.dish;
+      const obj = it.obj;
+      st.tray.incoming++;
+      w.tweens.wait(n * TUNE.handoffEvery, () =>
+        w.flights.launch(obj, obj.position, (o) => st.tray.topWorld(o), () => {
+          st.tray.incoming--;
+          st.tray.push(dish, obj);
+        }, { dur: 0.22, arc: 0.5 }),
+      );
+      n++;
+    }
+    h.busyT = n * TUNE.handoffEvery + 0.25;
   }
 
   private takePlates(h: Helper, t: Table): void {

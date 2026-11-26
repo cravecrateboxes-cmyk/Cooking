@@ -171,9 +171,18 @@ export class Service {
     }
   }
 
+  /** a dish arrived but more are owed: the guest calms down a little while the rest comes */
+  private calm(c: Customer): void {
+    if (c.remaining === 0) return;
+    c.waited = Math.max(0, c.waited - TUNE.customer.partialBoost);
+    if (c.waited <= TUNE.customer.patience) c.grumbled = false;
+    c.bubble.patience(c.waited / TUNE.customer.patience);
+  }
+
   giveTakeout(c: Customer, dish: Dish, obj: THREE.Object3D): void {
     const w = this.w;
     c.receive(dish);
+    this.calm(c);
     c.stack.incoming++;
     w.flights.launch(obj, obj.position, (o) => c.stack.topWorld(o), () => {
       c.stack.incoming--;
@@ -287,6 +296,7 @@ export class Service {
     const c = s.guest;
     if (!c) return;
     c.receive(dish);
+    this.calm(c);
     const k = s.food.length;
     s.food.push(obj);
     const at = t.placeFor(i, k, new THREE.Vector3());

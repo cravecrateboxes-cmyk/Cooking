@@ -25,18 +25,24 @@ function marker(): THREE.BufferGeometry {
 }
 
 const _d = new THREE.Vector3();
+const TRAIL = 7; // chevrons laid along the route
+const GAP = 0.62; // metres between chevrons
+const REPLAN = 0.3; // seconds between route updates
 
 function plural(d: Dish): string {
   const n = DISHES[d].name.toLowerCase();
   return n.endsWith('s') ? n : `${n}s`;
 }
 
-/** Floor chevrons around the chef pointing at the next thing to do, and a bobbing marker over it. */
+/** A trail of floor chevrons along the walking route to the next thing to do, and a bobbing marker over it. */
 export class Guide {
   private readonly arrow = new THREE.Group();
   private readonly pin: THREE.Mesh;
   private readonly chevrons: THREE.Mesh[] = [];
   private goal: THREE.Vector3 | null = null;
+  /** the route from the chef to the goal, around counters and tables, starting at the chef */
+  private route: THREE.Vector3[] = [];
+  private routeT = 0;
   private fade = 0;
   hint: string | null = null;
   /** seconds the chef has held a full stack nobody wants */
@@ -45,11 +51,8 @@ export class Guide {
   constructor(private readonly w: World) {
     const g = chevron();
     const m = toonMat('#ffd23f', { emissive: 0.35, key: 'guide' });
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < TRAIL; i++) {
       const c = new THREE.Mesh(g, m);
-      c.position.z = 0.95 + i * 0.42;
-      c.rotation.y = 0;
-      c.scale.setScalar(0.7 - i * 0.12);
       this.arrow.add(c);
       this.chevrons.push(c);
     }
@@ -81,7 +84,7 @@ export class Guide {
     if (first) {
       if (canPay && next) {
         this.goal = next.pad.pos;
-        this.hint = `Stand here to buy the ${next.def.title}`;
+        this.hint = buyHint(next.def.title);
       } else if (w.cash.count > 0) {
         this.goal = w.cash.root.position;
         this.hint = 'Walk over the cash to grab it';
@@ -100,7 +103,10 @@ export class Guide {
       }
       return;
     }
-    if (next && canPay && affordable) this.goal = next.pad.pos;
+    if (next && canPay && affordable) {
+      this.goal = next.pad.pos;
+      if (w.progress.unlocked.length < 6) this.hint = buyHint(next.def.title);
+    }
     else if (p.stack.holdsPlates && w.sinkOn) this.goal = w.sinkPad.pos;
     else if (front && front.waited > 6 && !p.stack.items.some((i) => frontWants(i.kind as Dish)) && !w.pass.has(frontWants)) {
       // the guest at the counter is waiting on a dish nobody is bringing: point at the station that makes it
@@ -130,15 +136,57 @@ export class Guide {
     this.pin.visible = !!g;
     const t = this.w.time;
     if (g) {
-      _d.set(g.x - p.pos.x, 0, g.z - p.pos.z);
-      this.arrow.position.set(p.pos.x, 0.03, p.pos.z);
-      this.arrow.rotation.y = Math.atan2(_d.x, _d.z);
-      this.arrow.scale.setScalar(this.fade);
+      this.routeT -= dt;
+      if (this.routeT <= 0 || !this.route.length) {
+        this.routeT = REPLAN;
+        this.route = [p.pos.clone(), ...this.w.nav.path(p.pos, g)];
+      } else {
+        this.route[0].copy(p.pos);
+      }
+      // chevrons ride along the route, each turned the way the route goes there, fading out near the goal
+      const scroll = (t * 1.4) % GAP;
       this.chevrons.forEach((c, i) => {
-        c.position.z = 0.9 + i * 0.4 + ((t * 1.6) % 0.4);
+        const along = 0.85 + i * GAP + scroll;
+        const left = this.along(along, c.position);
+        c.rotation.y = Math.atan2(_d.x, _d.z);
+        const fadeIn = Math.min(1, (along - 0.85) / GAP);
+        const fadeOut = Math.min(1, Math.max(0, left - 0.9) / 0.8);
+        c.scale.setScalar(0.62 * Math.min(fadeIn, fadeOut) * this.fade);
+        c.position.y = 0.03;
       });
       this.pin.position.set(g.x, 2.0 + Math.sin(t * 4) * 0.15, g.z);
       this.pin.rotation.y = t * 1.5;
     }
   }
+
+  /** the point a distance along the route into out, leaving its direction in _d; returns the distance left */
+  private along(dist: number, out: THREE.Vector3): number {
+    const r = this.route;
+    let d = dist;
+    for (let i = 1; i < r.length; i++) {
+      const a = r[i - 1];
+      const b = r[i];
+      const seg = Math.hypot(b.x - a.x, b.z - a.z);
+      if (seg < 1e-4) continue;
+      _d.set((b.x - a.x) / seg, 0, (b.z - a.z) / seg);
+      if (d <= seg) {
+        out.set(a.x + _d.x * d, 0, a.z + _d.z * d);
+        let left = seg - d;
+        for (let k = i + 1; k < r.length; k++) left += Math.hypot(r[k].x - r[k - 1].x, r[k].z - r[k - 1].z);
+        return left;
+      }
+      d -= seg;
+    }
+    const end = r[r.length - 1];
+    out.set(end.x, 0, end.z);
+    return 0;
+  }
+}
+
+/** "Hire Waiter" reads as "hire the waiter", "Open Beach Truck" as "open the Beach Truck", anything else is bought. */
+function buyHint(title: string): string {
+  const [verb, ...rest] = title.split(' ');
+  if (verb === 'Hire') return `Walk onto the glowing pad to hire the ${rest.join(' ').toLowerCase()}`;
+  if (verb === 'Open') return `Walk onto the glowing pad to open the ${rest.join(' ')}`;
+  return `Walk onto the glowing pad to buy the ${title}`;
 }

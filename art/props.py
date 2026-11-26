@@ -357,7 +357,8 @@ def food_truck(p):
     parts.append(box("hatch_belt", (0.06, hl, 0.2), (W / 2 + T / 2 + 0.02, hc, 0.62), p["yellow"], 0.02))
     parts.append(box("shelf", (0.78, hl + 0.1, 0.09), (W / 2 + 0.16, hc, 0.98), p["yellow"], 0.03))
     parts.append(box("shelf_lip", (0.08, hl + 0.1, 0.06), (W / 2 + 0.53, hc, 1.04), p["orange"], 0.02))
-    for y in (y0, y1, hc):
+    # posts only at the hatch ends so the shelf stays clear for the register and the pass
+    for y in (y0, y1):
         parts.append(box("post", (0.16, 0.2, H - 0.9), (W / 2, y, 0.9 + (H - 0.9) / 2), p["pink_d"], 0.05))
     parts.append(box("beam", (0.24, hl + 0.2, 0.2), (W / 2, hc, H - 0.04), p["yellow"], 0.05))
     # door frame at the cab end
