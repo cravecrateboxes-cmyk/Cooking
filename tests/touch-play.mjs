@@ -85,14 +85,16 @@ page.on('request', (r) => {
 });
 page.on('requestfailed', (r) => fail(`request failed: ${r.url().slice(0, 120)} ${r.failure()?.errorText}`));
 // FROM=truck starts from a save with Corner Grill finished, so the Beach Truck can be played on its own;
-// FROM=done starts with both maps finished, to check the ending and the title screen in seconds
-if (process.env.FROM === 'truck' || process.env.FROM === 'done') {
+// FROM=done starts with both maps finished, to check the ending and the title screen in seconds;
+// FROM=last starts with every Corner Grill pad bought but the one that opens the Beach Truck, and coins for it
+if (process.env.FROM === 'truck' || process.env.FROM === 'done' || process.env.FROM === 'last') {
   const src = fs.readFileSync(path.join(ROOT, 'src/game/maps.ts'), 'utf8');
   const padIds = (text) => [...text.matchAll(/\{ id: '([a-z0-9_]+)', kind/g)].map((m) => m[1]);
   const fresh = (unlocked) => ({ unlocked, upgrades: { speed: 0, capacity: 0, kitchen: 0, menu: 0 }, served: 0 });
   const maps = { barn: fresh(padIds(src.slice(src.indexOf('export const BARN'), src.indexOf('export const TRUCK')))) };
   if (process.env.FROM === 'done') maps.truck = fresh(padIds(src.slice(src.indexOf('export const TRUCK'), src.indexOf('export const MAPS'))));
-  const seed = { v: 1, coins: 0, gems: 0, current: 'truck', maps };
+  if (process.env.FROM === 'last') maps.barn.unlocked = maps.barn.unlocked.filter((id) => id !== 'next');
+  const seed = process.env.FROM === 'last' ? { v: 1, coins: 700, gems: 0, current: 'barn', maps } : { v: 1, coins: 0, gems: 0, current: 'truck', maps };
   await ctx.addInitScript((seed) => {
     if (location.pathname.startsWith('/page/') && !sessionStorage.getItem('seeded')) {
       sessionStorage.setItem('seeded', '1');
@@ -284,7 +286,7 @@ async function playMaps(limitSec) {
   const t0 = Date.now();
   let held = false;
   let lastUnlock = { n: -1, map: '', at: 0 };
-  let firstDone = 0;
+  let bought = 0; // pads bought by touch this run, across maps
   let boardOpens = 0;
   let dropped = 0; // thumb presses the joystick did not catch
   let nextTrace = 0;
@@ -314,7 +316,7 @@ async function playMaps(limitSec) {
     }
     if (s.done !== lastUnlock.n || s.map !== lastUnlock.map) {
       if (lastUnlock.n >= 0) step(`${s.map} ${s.done}/${s.total} at ${Math.round(s.sim)} s`);
-      if (lastUnlock.n < 0) firstDone = s.done;
+      if (lastUnlock.n >= 0 && s.map === lastUnlock.map && s.done > lastUnlock.n) bought += s.done - lastUnlock.n;
       lastUnlock = { n: s.done, map: s.map, at: s.sim };
     }
     if (s.sim - lastUnlock.at > STALL) {
@@ -334,8 +336,8 @@ async function playMaps(limitSec) {
       await shot('truck-finished');
       break;
     }
-    if (UNTIL && lastUnlock.n >= 0 && s.done >= firstDone + UNTIL) {
-      step(`core loop done: ${s.done - firstDone} pads bought by touch at ${Math.round(s.sim)} game seconds, ${s.coins} coins, board opened Upgrades ${boardOpens} times, ${dropped} presses dropped`);
+    if (UNTIL && bought >= UNTIL) {
+      step(`core loop done: ${bought} pads bought by touch at ${Math.round(s.sim)} game seconds, ${s.coins} coins, board opened Upgrades ${boardOpens} times, ${dropped} presses dropped`);
       if (held) await touch('touchEnd', 0, 0);
       await sleep(800);
       await shot('core-loop');
@@ -403,7 +405,8 @@ async function playMaps(limitSec) {
     await state(() => {
       window.__budget = window.__step || 0.2;
       return new Promise((done) => {
-        const wait = () => (window.__budget <= 0 || app.mode !== 'play' ? done() : requestAnimationFrame(wait));
+        // a map change swaps in a new world the test has not wrapped yet, so stop waiting and look again
+        const wait = () => (window.__budget <= 0 || app.mode !== 'play' || !app.world.__timed ? done() : requestAnimationFrame(wait));
         wait();
       });
     });
